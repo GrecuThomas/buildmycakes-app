@@ -21,7 +21,7 @@ const Navigation = (props: IProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer">
+          <a href="/" onClick={() => setActiveTab("Home")} className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
             <div className="bg-blue-600 p-2 rounded-lg">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -40,7 +40,7 @@ const Navigation = (props: IProps) => {
               </svg>
             </div>
             <span className="text-xl font-bold tracking-tight text-slate-800">Build My Cake</span>
-          </div>
+          </a>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">

@@ -1,7 +1,9 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
+import { GoogleOAuthProvider } from '@react-oauth/google'
 
 import '../styles.css'
+
+const GOOGLE_CLIENT_ID = '403400741162-roc9hheq3aineldf1fe2d4oaqnjvf88q.apps.googleusercontent.com'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -28,7 +30,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+          {children}
+        </GoogleOAuthProvider>
         <Scripts />
       </body>
     </html>
