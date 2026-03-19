@@ -2,7 +2,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import Pricing_Page from '../components/Pricing_Page' // <--- REPLACE THIS
 
-export const Route = createFileRoute('/about')({
+export const Route = createFileRoute('/pricing')({
   component: Pricing,
 })
 
