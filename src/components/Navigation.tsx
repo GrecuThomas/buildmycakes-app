@@ -22,10 +22,24 @@ const Navigation = (props: IProps) => {
         <div className="flex justify-between h-16 items-center">
           {/* Logo */}
           <div className="flex items-center gap-2 cursor-pointer">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <div className="w-4 h-4 bg-white rounded-sm rotate-45"></div>
+            <div className="bg-blue-600 p-2 rounded-lg">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-white w-5 h-5"
+              >
+                <rect x="4" y="17" width="16" height="5" rx="1" />
+                <rect x="7" y="12" width="10" height="5" rx="1" />
+                <rect x="10" y="7" width="4" height="5" rx="1" />
+                <path d="M12 3v4" />
+              </svg>
             </div>
-            <span className="text-xl font-bold tracking-tight text-slate-800">Nexus</span>
+            <span className="text-xl font-bold tracking-tight text-slate-800">Build My Cake</span>
           </div>
 
           {/* Desktop Navigation */}

@@ -51,24 +51,14 @@ const App = () => {
             {/* Visual Element / Placeholder */}
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-              <div className="relative bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden aspect-[4/3] flex flex-col">
+              <div className="relative bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col">
                 <div className="h-8 border-b border-slate-100 bg-slate-50 flex items-center px-4 gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
                   <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
                 </div>
-                <div className="flex-1 p-8 flex flex-col justify-center items-center gap-6">
-                  <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="w-3/4 h-full bg-blue-600 rounded-full"></div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 w-full">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div key={i} className="h-20 bg-slate-50 rounded-xl border border-slate-100 border-dashed animate-pulse"></div>
-                    ))}
-                  </div>
-                  <div className="text-center">
-                    <p className="text-slate-400 text-sm font-medium italic">Nexus Interface Preview</p>
-                  </div>
+                <div className="flex-1 overflow-hidden flex items-center justify-center bg-slate-50">
+                  <img src="/BuildMyCakes.png" alt="Build My Cake Interface" className="max-w-full max-h-full object-contain" />
                 </div>
               </div>
             </div>
@@ -79,7 +69,7 @@ const App = () => {
       {/* Basic Footer */}
       <footer className="py-12 border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
-          &copy; {new Date().getFullYear()} Nexus Technology Group. All rights reserved.
+          &copy; {new Date().getFullYear()} Build My Cake. All rights reserved.
         </div>
       </footer>
     </div>

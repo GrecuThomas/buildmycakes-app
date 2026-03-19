@@ -68,7 +68,7 @@ const LogIn = () => {
                 </div>
               </div>
               <h1 className="text-3xl font-bold text-slate-900">Welcome Back</h1>
-              <p className="text-slate-600">Sign in to your Nexus account</p>
+              <p className="text-slate-600">Sign in to your Build My Cake account</p>
             </div>
 
             {/* Form */}
