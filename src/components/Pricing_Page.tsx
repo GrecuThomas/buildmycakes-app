@@ -1,22 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Home, Tag, Hammer, LogIn, Menu, X, ArrowRight, CheckCircle2 } from 'lucide-react';
 import Navigation from "./Navigation"
 
 const App = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('Home');
-
-  const navItems = [
-    { name: 'Home', icon: <Home size={18} /> },
-    { name: 'Pricing', icon: <Tag size={18} /> },
-    { name: 'Builder', icon: <Hammer size={18} /> },
-    { name: 'Log In', icon: <LogIn size={18} /> },
-  ];
-
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       {/* Navigation */}
-      <Navigation/>
+      <Navigation tab='Pricing' />
       {/* Hero Content */}
       <main>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
