@@ -1,12 +1,11 @@
-import React from 'react';
-import { Home, Tag, Hammer, LogIn, Menu, X, ArrowRight, CheckCircle2 } from 'lucide-react';
-import Navigation from "./Navigation"
+import { ArrowRight, CheckCircle2 } from "lucide-react";
+import Navigation from "./Navigation";
 
 const App = () => {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       {/* Navigation */}
-      <Navigation tab='Home' />
+      <Navigation tab="Home" />
       {/* Hero Content */}
       <main>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
@@ -19,18 +18,19 @@ const App = () => {
                 </span>
                 New: AI Builder V2.0 is out
               </div>
-              
+
               <h1 className="text-5xl lg:text-7xl font-extrabold text-slate-900 leading-[1.1] tracking-tight">
                 Design your <span className="text-blue-600">future</span> in minutes.
               </h1>
-              
+
               <p className="text-lg text-slate-600 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                The most intuitive platform for builders and creators. Turn your complex ideas into beautiful realities with our drag-and-drop workspace.
+                The most intuitive platform for builders and creators. Turn your complex ideas into beautiful realities with our drag-and-drop
+                workspace.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
                 <button className="group flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-2xl font-bold transition-all hover:translate-y-[-2px] shadow-xl shadow-slate-200">
-                  Start Building 
+                  Start Building
                   <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </button>
                 <button className="flex items-center justify-center gap-2 bg-white border border-slate-200 hover:border-slate-300 px-8 py-4 rounded-2xl font-bold text-slate-700 transition-all hover:bg-slate-50">
@@ -39,7 +39,7 @@ const App = () => {
               </div>
 
               <div className="flex flex-wrap justify-center lg:justify-start gap-6 pt-8">
-                {['No code required', 'Real-time sync', 'Enterprise secure'].map((feature) => (
+                {["No code required", "Real-time sync", "Enterprise secure"].map((feature) => (
                   <div key={feature} className="flex items-center gap-2 text-slate-500 text-sm font-medium">
                     <CheckCircle2 size={16} className="text-emerald-500" />
                     {feature}
@@ -58,17 +58,17 @@ const App = () => {
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
                 </div>
                 <div className="flex-1 p-8 flex flex-col justify-center items-center gap-6">
-                   <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="w-3/4 h-full bg-blue-600 rounded-full"></div>
-                   </div>
-                   <div className="grid grid-cols-3 gap-4 w-full">
-                      {[1,2,3,4,5,6].map(i => (
-                        <div key={i} className="h-20 bg-slate-50 rounded-xl border border-slate-100 border-dashed animate-pulse"></div>
-                      ))}
-                   </div>
-                   <div className="text-center">
-                     <p className="text-slate-400 text-sm font-medium italic">Nexus Interface Preview</p>
-                   </div>
+                  <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="w-3/4 h-full bg-blue-600 rounded-full"></div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 w-full">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div key={i} className="h-20 bg-slate-50 rounded-xl border border-slate-100 border-dashed animate-pulse"></div>
+                    ))}
+                  </div>
+                  <div className="text-center">
+                    <p className="text-slate-400 text-sm font-medium italic">Nexus Interface Preview</p>
+                  </div>
                 </div>
               </div>
             </div>
