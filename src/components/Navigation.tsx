@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Home, Tag, Hammer, LogIn, Menu, X, ArrowRight, CheckCircle2 } from 'lucide-react';
 
-const Navigation = () => {
+const Navigation = (props) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('Home');
+  const [activeTab, setActiveTab] = useState(props.tab);
 
   const navItems = [
     { name: 'Home', icon: <Home size={18} />, href:"/" },
