@@ -7,7 +7,7 @@ const App = () => {
 
   const navItems = [
     { name: 'Home', icon: <Home size={18} /> },
-    { name: 'Pricing', icon: <Tag size={18} /> },
+    { name: 'Pricing', icon: <Tag size={18} />, href:"/pricing" },
     { name: 'Builder', icon: <Hammer size={18} /> },
     { name: 'Log In', icon: <LogIn size={18} /> },
   ];
@@ -29,8 +29,9 @@ const App = () => {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
               {navItems.map((item) => (
-                <button
+                <a
                   key={item.name}
+                  href={item.href}
                   onClick={() => setActiveTab(item.name)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                     activeTab === item.name
@@ -40,7 +41,7 @@ const App = () => {
                 >
                   {item.icon}
                   {item.name}
-                </button>
+                </a>
               ))}
               <div className="ml-4 pl-4 border-l border-slate-200">
                 <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full text-sm font-semibold shadow-sm transition-all active:scale-95">
