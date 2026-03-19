@@ -6,7 +6,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       {/* Navigation */}
-      <Navigation tab='Pricing' />
+      <Navigation tab='Home' />
       {/* Hero Content */}
       <main>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
