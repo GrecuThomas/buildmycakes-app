@@ -6,10 +6,10 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('Home');
 
   const navItems = [
-    { name: 'Home', icon: <Home size={18} /> },
+    { name: 'Home', icon: <Home size={18} />, href:"/" },
     { name: 'Pricing', icon: <Tag size={18} />, href:"/pricing" },
-    { name: 'Builder', icon: <Hammer size={18} /> },
-    { name: 'Log In', icon: <LogIn size={18} /> },
+    { name: 'Builder', icon: <Hammer size={18} />, href:"/builder" },
+    { name: 'Log In', icon: <LogIn size={18} />, href:"/log-in" },
   ];
 
   return (
@@ -43,11 +43,6 @@ const App = () => {
                   {item.name}
                 </a>
               ))}
-              <div className="ml-4 pl-4 border-l border-slate-200">
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full text-sm font-semibold shadow-sm transition-all active:scale-95">
-                  Get Started
-                </button>
-              </div>
             </div>
 
             {/* Mobile Menu Button */}
