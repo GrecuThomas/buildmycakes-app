@@ -1,4 +1,5 @@
 import Navigation from "./Navigation";
+import Footer from "./Footer";
 
 const App = () => {
   return (
@@ -13,9 +14,11 @@ const App = () => {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-8 flex flex-col text-center items-center">
               <h2 className="text-[40px] font-bold text-slate-900 mb-6">Free</h2>
               <div className="space-y-2 text-black text-[20px]">
-                <p>5 sketch exports per month</p>
+                <p>2 saved designs</p>
+                <p>max 2 tiers per cake</p>
+                <p>view-only + watermarks</p>
+                <p>access to square shape</p>
                 <p>ad-supported content</p>
-                <p>limited content availability</p>
               </div>
               <button className="mt-6 px-6 py-2 border-2 border-slate-900 text-slate-900 rounded-full font-semibold hover:bg-slate-900 hover:text-white transition-colors">
                 Start for Free
@@ -31,8 +34,10 @@ const App = () => {
               <h2 className="text-[40px] font-bold text-blue-600 mb-6">Standard</h2>
               <div className="space-y-2 text-blue-600 text-[20px]">
                 <p>unlimited sketch exports</p>
+                <p>unlimited saved designs</p>
+                <p>high-quality PNG/PDF exports</p>
+                <p>simple pricing logic</p>
                 <p>no ads</p>
-                <p>access to decorations</p>
                 <p>access to additional content</p>
               </div>
               <button className="mt-6 px-6 py-2 border-2 border-blue-600 text-blue-600 rounded-full font-semibold hover:bg-blue-600 hover:text-white transition-colors">
@@ -52,11 +57,13 @@ const App = () => {
               <h2 className="text-[40px] font-bold text-red-600 mb-6">Pro</h2>
               <div className="space-y-2 text-red-600 text-[20px]">
                 <p>unlimited sketch exports</p>
+                <p>unlimited saved designs</p>
+                <p>high-quality PNG/PDF exports</p>
+                <p>simple pricing logic</p>
                 <p>no ads</p>
-                <p>access to decorations</p>
                 <p>access to additional content</p>
-                <p>access to beta content</p>
-                <p>influence the development of the app</p>
+                <p>priority customer support</p>
+                <p>early access to new features</p>
               </div>
               <button className="mt-6 px-6 py-2 border-2 border-red-600 text-red-600 rounded-full font-semibold hover:bg-red-600 hover:text-white transition-colors">
                 Upgrade
@@ -73,12 +80,8 @@ const App = () => {
         </div>
       </main>
 
-      {/* Basic Footer */}
-      <footer className="py-12 border-t border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
-          &copy; {new Date().getFullYear()} Build My Cake. All rights reserved.
-        </div>
-      </footer>
+      {/* Footer Component */}
+      <Footer />
     </div>
   );
 };

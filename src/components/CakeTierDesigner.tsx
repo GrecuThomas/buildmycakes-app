@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useRef, FC, SVGProps, ReactNode, MouseEvent } from "react";
-import { Circle, Square, Hexagon, Plus, Trash2, ArrowUp, ArrowDown, Move, Download } from "lucide-react";
+import { Circle, Square, Hexagon, Plus, Trash2, ArrowUp, ArrowDown, Move, Download, ArrowLeft } from "lucide-react";
+import { useRouter } from "@tanstack/react-router";
 
 // --- TYPE DEFINITIONS ---
 interface Tier {
@@ -413,6 +414,7 @@ const TierShape: FC<TierShapeProps> = ({ tier, yBase, maxW, isHovered, onClick }
 
 // --- MAIN APPLICATION COMPONENT ---
 export default function Page(): ReactNode {
+  const router = useRouter();
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [hoveredTier, setHoveredTier] = useState<string | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
@@ -832,8 +834,15 @@ export default function Page(): ReactNode {
   return (
     <div className="h-screen w-screen overflow-hidden bg-slate-100 flex flex-col font-sans text-slate-800">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10 shadow-sm shrink-0">
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10 shadow-sm shrink-0 h-16">
         <div className="flex items-center gap-6">
+          <button
+            onClick={() => router.navigate({ to: "/" })}
+            className="flex items-center justify-center p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600 hover:text-slate-900"
+            title="Back to home"
+          >
+            <ArrowLeft size={20} />
+          </button>
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
               <svg
@@ -856,8 +865,8 @@ export default function Page(): ReactNode {
               <h1 className="text-xl font-bold text-slate-800 tracking-tight leading-none">Build My Cakes</h1>
               <p className="text-xs text-slate-500 font-medium mt-1">Your on-demand custom cake builder</p>
             </div>
+            </div>
           </div>
-        </div>
         <div className="flex items-center gap-4">
           <button
             onClick={handleExport}
