@@ -420,8 +420,10 @@ export default function Page(): ReactNode {
   const [pan, setPan] = useState<SVGPoint>({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState<boolean>(false);
   const [hasDragged, setHasDragged] = useState<boolean>(false);
-  const [sketchName, setSketchName] = useState<string>("");
-  const [sketchDate, setSketchDate] = useState<string>("");
+  const [showExportModal, setShowExportModal] = useState<boolean>(false);
+  const [exportModalName, setExportModalName] = useState<string>("");
+  const [exportModalDate, setExportModalDate] = useState<string>("");
+  const [exportType, setExportType] = useState<"png" | "pdf" | null>(null);
   const panStartRef = useRef<SVGPoint>({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -489,7 +491,7 @@ export default function Page(): ReactNode {
   }, [tiers]);
 
   // --- Handlers ---
-  const getCanvasSnapshot = (): Promise<{ canvas: HTMLCanvasElement; exportW: number; exportH: number } | null> => {
+  const getCanvasSnapshot = (projectName?: string, projectDate?: string): Promise<{ canvas: HTMLCanvasElement; exportW: number; exportH: number } | null> => {
     return new Promise((resolve) => {
       const svgElement = svgRef.current;
       if (!svgElement) return resolve(null);
@@ -551,11 +553,11 @@ export default function Page(): ReactNode {
         ctx.textAlign = "left";
         ctx.fillStyle = "#1e293b"; // slate-800
         ctx.font = "bold 70px sans-serif";
-        ctx.fillText(sketchName || "Project Name: ________________", marginPx, marginPx);
+        ctx.fillText(projectName || "Project Name: ________________", marginPx, marginPx);
 
         ctx.fillStyle = "#64748b"; // slate-500
         ctx.font = "50px sans-serif";
-        ctx.fillText(sketchDate || "Date: ________________", marginPx, marginPx + 100);
+        ctx.fillText(projectDate || "Date: ________________", marginPx, marginPx + 100);
 
         // Top Right: Tiers & Height
         ctx.textAlign = "right";
@@ -590,66 +592,61 @@ export default function Page(): ReactNode {
     });
   };
 
-  const getExportFileName = (extension: string): string => {
-    let base = "Cake_Blueprint";
-    if (sketchName.trim() || sketchDate.trim()) {
-      const parts = [];
-      if (sketchName.trim()) parts.push(sketchName.trim());
-      if (sketchDate.trim()) parts.push(sketchDate.trim());
-      base = parts.join("_");
-    }
-    // Clean invalid filename characters (like slashes) so the OS doesn't throw an error
-    base = base.replace(/[<>:"/\\|?*]+/g, "-");
-    return `${base}.${extension}`;
+  const handleExport = (): void => {
+    setExportType(null);
+    setShowExportModal(true);
   };
 
-  const handleExportPNG = async (): Promise<void> => {
-    const snapshot = await getCanvasSnapshot();
-    if (!snapshot) return;
-    const pngUrl = snapshot.canvas.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = pngUrl;
-    a.download = getExportFileName("png");
-    a.click();
-  };
-
-  const handleExportPDF = async (): Promise<void> => {
-    const snapshot = await getCanvasSnapshot();
-    if (!snapshot) return;
-
+  const performExport = async (name: string, date: string, type: "png" | "pdf"): Promise<void> => {
     try {
-      // Dynamically load jsPDF library only when needed
-      if (!(window as any).jspdf) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
+      // Convert date format from YYYY-MM-DD to DD-MM-YYYY
+      const [year, month, day] = date.split("-");
+      const formattedDate = `${day}-${month}-${year}`;
+
+      // Use provided name and date for export
+      const snapshot = await getCanvasSnapshot(name, date);
+      if (!snapshot) return;
+
+      if (type === "png") {
+        const pngUrl = snapshot.canvas.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = pngUrl;
+        a.download = `${name}_${formattedDate}.png`;
+        a.click();
+      } else if (type === "pdf") {
+        // Dynamically load jsPDF library only when needed
+        if (!(window as any).jspdf) {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+          });
+        }
+
+        const { jsPDF } = (window as any).jspdf;
+        const { canvas } = snapshot;
+
+        // Compress slightly for PDF to avoid massive file sizes
+        const imgData = canvas.toDataURL("image/jpeg", 0.9);
+
+        // Force standard Portrait A4 format
+        const doc = new jsPDF({
+          orientation: "p",
+          unit: "mm",
+          format: "a4",
         });
+
+        // Map the 300 DPI canvas exactly to the physical A4 document
+        const pdfW = doc.internal.pageSize.getWidth();
+        const pdfH = doc.internal.pageSize.getHeight();
+
+        doc.addImage(imgData, "JPEG", 0, 0, pdfW, pdfH);
+        doc.save(`${name}_${formattedDate}.pdf`);
       }
-
-      const { jsPDF } = (window as any).jspdf;
-      const { canvas } = snapshot;
-
-      // Compress slightly for PDF to avoid massive file sizes
-      const imgData = canvas.toDataURL("image/jpeg", 0.9);
-
-      // Force standard Portrait A4 format
-      const doc = new jsPDF({
-        orientation: "p",
-        unit: "mm",
-        format: "a4",
-      });
-
-      // Map the 300 DPI canvas exactly to the physical A4 document
-      const pdfW = doc.internal.pageSize.getWidth();
-      const pdfH = doc.internal.pageSize.getHeight();
-
-      doc.addImage(imgData, "JPEG", 0, 0, pdfW, pdfH);
-      doc.save(getExportFileName("pdf"));
     } catch (err) {
-      console.error("Failed to generate PDF", err);
+      console.error("Failed to generate export", err);
     }
   };
 
@@ -856,51 +853,21 @@ export default function Page(): ReactNode {
               </svg>
             </div>
             <div className="flex flex-col">
-              <h1 className="text-xl font-bold text-slate-800 tracking-tight leading-none">Build The Cakes</h1>
+              <h1 className="text-xl font-bold text-slate-800 tracking-tight leading-none">Build My Cakes</h1>
               <p className="text-xs text-slate-500 font-medium mt-1">Your on-demand custom cake builder</p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-3 border-l border-slate-200 pl-6">
-            <input
-              type="text"
-              placeholder="Project Name..."
-              value={sketchName}
-              onChange={(e) => setSketchName(e.target.value)}
-              className="px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 text-slate-700 font-medium placeholder-slate-400"
-            />
-            <input
-              type="text"
-              placeholder="Date..."
-              value={sketchDate}
-              onChange={(e) => setSketchDate(e.target.value)}
-              className="px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-32 text-slate-700 font-medium placeholder-slate-400"
-            />
-          </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-sm text-slate-500 font-mono hidden lg:block">
-            {actualTiersCount} Tiers | Total Height: {totalH}cm
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleExportPNG}
-              disabled={tiers.length === 0}
-              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
-              title="Export as PNG Image"
-            >
-              <Download className="w-4 h-4" />
-              PNG
-            </button>
-            <button
-              onClick={handleExportPDF}
-              disabled={tiers.length === 0}
-              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
-              title="Export as PDF Document"
-            >
-              <Download className="w-4 h-4" />
-              PDF
-            </button>
-          </div>
+          <button
+            onClick={handleExport}
+            disabled={tiers.length === 0}
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm shadow-blue-600/20"
+            title="Export cake design"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
         </div>
       </header>
 
@@ -986,6 +953,11 @@ export default function Page(): ReactNode {
           {/* Zoom controls hint */}
           <div className="absolute bottom-6 left-6 z-20 bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm text-xs font-mono text-slate-500 pointer-events-none">
             Zoom: {Math.round(zoom * 100)}% (Scroll to zoom)
+          </div>
+
+          {/* Tier counter and total height */}
+          <div className="absolute bottom-6 right-6 z-20 bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm text-xs font-mono text-slate-500 pointer-events-none">
+            {actualTiersCount} Tiers | Total Height: {totalH}cm
           </div>
 
           {isDraggingOver && (
@@ -1220,6 +1192,121 @@ export default function Page(): ReactNode {
                   className="flex-1 px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 font-semibold rounded-lg transition-colors shadow-sm shadow-blue-600/20"
                 >
                   {modal.mode === "add" ? "Add to Cake" : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h3 className="font-bold text-slate-800">Export Cake Design</h3>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (exportType && exportModalName && exportModalDate) {
+                  performExport(exportModalName, exportModalDate, exportType);
+                  setShowExportModal(false);
+                  setExportModalName("");
+                  setExportModalDate("");
+                  setExportType(null);
+                }
+              }}
+              className="p-6"
+            >
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
+                    Project Name / Customer Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={exportModalName}
+                    onChange={(e) => setExportModalName(e.target.value)}
+                    placeholder="e.g., Wedding Cake 2024"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={exportModalDate}
+                    onChange={(e) => setExportModalDate(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">
+                    Export Format
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        value="png"
+                        checked={exportType === "png"}
+                        onChange={(e) => setExportType(e.target.value as "png" | "pdf")}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm text-slate-700">PNG Image</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        value="pdf"
+                        checked={exportType === "pdf"}
+                        onChange={(e) => setExportType(e.target.value as "png" | "pdf")}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm text-slate-700">PDF Document</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="text-xs text-slate-500">
+                  <p className="font-semibold mb-1">File name:</p>
+                  <p className="font-mono text-slate-600">
+                    {exportModalName || "[Project Name]"}_{exportModalDate ? (() => { const [year, month, day] = exportModalDate.split("-"); return `${day}-${month}-${year}`; })() : "[DD-MM-YYYY]"}.
+                    {exportType === "png" ? "png" : "pdf"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-8 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowExportModal(false);
+                    setExportModalName("");
+                    setExportModalDate("");
+                    setExportType(null);
+                  }}
+                  className="flex-1 px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 font-semibold rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!exportModalName || !exportModalDate || !exportType}
+                  className="flex-1 px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed font-semibold rounded-lg transition-colors shadow-sm shadow-blue-600/20"
+                >
+                  Download File
                 </button>
               </div>
             </form>

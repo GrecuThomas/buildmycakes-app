@@ -1,4 +1,3 @@
-import { ArrowRight, CheckCircle2 } from "lucide-react";
 import Navigation from "./Navigation";
 
 const App = () => {
@@ -9,68 +8,66 @@ const App = () => {
       {/* Hero Content */}
       <main>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 text-red-600 text-xs font-bold uppercase tracking-wider border border-red-100">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
-                </span>
-                New: AI Builder V2.0 is out
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Free Plan */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-8 flex flex-col text-center items-center">
+              <h2 className="text-[40px] font-bold text-slate-900 mb-6">Free</h2>
+              <div className="space-y-2 text-black text-[20px]">
+                <p>5 sketch exports per month</p>
+                <p>ad-supported content</p>
+                <p>limited content availability</p>
               </div>
-
-              <h1 className="text-5xl lg:text-7xl font-extrabold text-slate-900 leading-[1.1] tracking-tight">
-                Design your <span className="text-red-600">future</span> in minutes.
-              </h1>
-
-              <p className="text-lg text-slate-600 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                The most intuitive platform for builders and creators. Turn your complex ideas into beautiful realities with our drag-and-drop
-                workspace.
+              <button className="mt-6 px-6 py-2 border-2 border-slate-900 text-slate-900 rounded-full font-semibold hover:bg-slate-900 hover:text-white transition-colors">
+                Start for Free
+              </button>
+              <p className="mt-3 text-[14px] font-bold text-slate-900" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                No credit card required
               </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
-                <button className="group flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-2xl font-bold transition-all hover:translate-y-[-2px] shadow-xl shadow-slate-200">
-                  Start Building
-                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-                <button className="flex items-center justify-center gap-2 bg-white border border-slate-200 hover:border-slate-300 px-8 py-4 rounded-2xl font-bold text-slate-700 transition-all hover:bg-slate-50">
-                  Watch Demo
-                </button>
-              </div>
-
-              <div className="flex flex-wrap justify-center lg:justify-start gap-6 pt-8">
-                {["No code required", "Real-time sync", "Enterprise secure"].map((feature) => (
-                  <div key={feature} className="flex items-center gap-2 text-slate-500 text-sm font-medium">
-                    <CheckCircle2 size={16} className="text-emerald-500" />
-                    {feature}
-                  </div>
-                ))}
-              </div>
+              <div className="flex-1"></div>
             </div>
 
-            {/* Visual Element / Placeholder */}
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-red-600 to-rose-600 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-              <div className="relative bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden aspect-[4/3] flex flex-col">
-                <div className="h-8 border-b border-slate-100 bg-slate-50 flex items-center px-4 gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
-                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
-                </div>
-                <div className="flex-1 p-8 flex flex-col justify-center items-center gap-6">
-                  <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="w-3/4 h-full bg-red-600 rounded-full"></div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 w-full">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div key={i} className="h-20 bg-slate-50 rounded-xl border border-slate-100 border-dashed animate-pulse"></div>
-                    ))}
-                  </div>
-                  <div className="text-center">
-                    <p className="text-slate-400 text-sm font-medium italic">Nexus Interface Preview</p>
-                  </div>
-                </div>
+            {/* Standard Plan */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-8 flex flex-col text-center items-center">
+              <h2 className="text-[40px] font-bold text-blue-600 mb-6">Standard</h2>
+              <div className="space-y-2 text-blue-600 text-[20px]">
+                <p>unlimited sketch exports</p>
+                <p>no ads</p>
+                <p>access to decorations</p>
+                <p>access to additional content</p>
               </div>
+              <button className="mt-6 px-6 py-2 border-2 border-blue-600 text-blue-600 rounded-full font-semibold hover:bg-blue-600 hover:text-white transition-colors">
+                Upgrade
+              </button>
+              <p className="mt-3 text-[14px] font-bold text-blue-600" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                4.99$/month
+              </p>
+              <p className="text-[14px] font-bold text-blue-600" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                or pay anually and save 15% (50.99$/year)
+              </p>
+              <div className="flex-1"></div>
+            </div>
+
+            {/* Pro Plan */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-8 flex flex-col text-center items-center">
+              <h2 className="text-[40px] font-bold text-red-600 mb-6">Pro</h2>
+              <div className="space-y-2 text-red-600 text-[20px]">
+                <p>unlimited sketch exports</p>
+                <p>no ads</p>
+                <p>access to decorations</p>
+                <p>access to additional content</p>
+                <p>access to beta content</p>
+                <p>influence the development of the app</p>
+              </div>
+              <button className="mt-6 px-6 py-2 border-2 border-red-600 text-red-600 rounded-full font-semibold hover:bg-red-600 hover:text-white transition-colors">
+                Upgrade
+              </button>
+              <p className="mt-3 text-[14px] font-bold text-red-600" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                14.99$/month
+              </p>
+              <p className="text-[14px] font-bold text-red-600" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                or pay anually and save 15% (152.89$/year)
+              </p>
+              <div className="flex-1"></div>
             </div>
           </div>
         </div>
@@ -79,7 +76,7 @@ const App = () => {
       {/* Basic Footer */}
       <footer className="py-12 border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
-          &copy; {new Date().getFullYear()} Nexus Technology Group. All rights reserved.
+          &copy; {new Date().getFullYear()} Build My Cake. All rights reserved.
         </div>
       </footer>
     </div>
