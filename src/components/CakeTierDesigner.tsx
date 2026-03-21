@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useMemo, useRef, FC, SVGProps, ReactNode, MouseEvent } from "react";
-import { Circle, Square, Hexagon, Plus, Trash2, ArrowUp, ArrowDown, Move, Download, ArrowLeft } from "lucide-react";
+import { Circle, Square, Hexagon, Plus, Trash2, ArrowUp, ArrowDown, Move, Download, ArrowLeft, Save, FolderOpen, RotateCcw } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
+import { SaveProjectModal } from "./SaveProjectModal";
+import { ProjectsModal } from "./ProjectsModal";
+import { saveProject } from "../server/projects.functions";
 
 // --- TYPE DEFINITIONS ---
 interface Tier {
@@ -450,6 +453,12 @@ export default function Page(): ReactNode {
     height: 10,
   });
 
+  // Save/Projects Modals State
+  const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
+  const [showProjectsModal, setShowProjectsModal] = useState<boolean>(false);
+  const [isSavingProject, setIsSavingProject] = useState<boolean>(false);
+  const [showResetModal, setShowResetModal] = useState<boolean>(false);
+
   // Derived calculations for the Canvas SVG
   const { maxW, totalH, viewBounds, tiersWithY, actualTiersCount } = useMemo(() => {
     if (tiers.length === 0) return { maxW: 100, totalH: 0, viewBounds: "-150 -150 300 300", tiersWithY: [], actualTiersCount: 0 };
@@ -493,7 +502,10 @@ export default function Page(): ReactNode {
   }, [tiers]);
 
   // --- Handlers ---
-  const getCanvasSnapshot = (projectName?: string, projectDate?: string): Promise<{ canvas: HTMLCanvasElement; exportW: number; exportH: number } | null> => {
+  const getCanvasSnapshot = (
+    projectName?: string,
+    projectDate?: string,
+  ): Promise<{ canvas: HTMLCanvasElement; exportW: number; exportH: number } | null> => {
     return new Promise((resolve) => {
       const svgElement = svgRef.current;
       if (!svgElement) return resolve(null);
@@ -650,6 +662,80 @@ export default function Page(): ReactNode {
     } catch (err) {
       console.error("Failed to generate export", err);
     }
+  };
+
+  const handleSaveProject = async (projectName: string): Promise<void> => {
+    try {
+      setIsSavingProject(true);
+      
+      // Get auth session
+      const { supabase } = await import('../lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('Not authenticated. Please log in first.');
+      }
+
+      const result = await (saveProject as any)({
+        data: {
+          name: projectName,
+          tiers,
+          decorations,
+          authToken: session.access_token,
+        },
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to save project");
+      }
+
+      setShowSaveModal(false);
+    } catch (error: any) {
+      console.log("Error saving project:", error.message);
+      alert(`Error saving project: ${error.message}`);
+    } finally {
+      setIsSavingProject(false);
+    }
+  };
+
+  const handleLoadProject = async (project: any): Promise<void> => {
+    try {
+      setTiers(project.tiers);
+      setDecorations(project.decorations);
+      setActiveDecorId(null);
+      // Reset zoom and pan when loading a new project
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+    } catch (error: any) {
+      alert(`Error loading project: ${error.message}`);
+    }
+  };
+
+  const handleResetCanvas = (): void => {
+    setShowResetModal(true);
+  };
+
+  const confirmReset = (): void => {
+    setTiers([]);
+    setDecorations([]);
+    setHoveredTier(null);
+    setIsDraggingOver(false);
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    setIsPanning(false);
+    setHasDragged(false);
+    setActiveDecorId(null);
+    setModal({
+      isOpen: false,
+      mode: "add",
+      tierId: null,
+      shape: "circle",
+      width: 30,
+      height: 10,
+    });
+    setShowSaveModal(false);
+    setShowProjectsModal(false);
+    setShowResetModal(false);
   };
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>): void => {
@@ -863,15 +949,39 @@ export default function Page(): ReactNode {
             </div>
             <div className="flex flex-col">
               <h1 className="text-xl font-bold text-slate-800 tracking-tight leading-none">Build My Cakes</h1>
-              <p className="text-xs text-slate-500 font-medium mt-1">Your on-demand custom cake builder</p>
-            </div>
             </div>
           </div>
-        <div className="flex items-center gap-4">
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleResetCanvas}
+            className="flex items-center gap-1.5 bg-slate-200 hover:bg-blue-600 text-slate-700 hover:text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm hover:shadow-blue-600/20"
+            title="Start a new design"
+          >
+            <RotateCcw className="w-4 h-4" />
+            New
+          </button>
+          <button
+            onClick={() => setShowProjectsModal(true)}
+            className="flex items-center gap-1.5 bg-slate-200 hover:bg-blue-600 text-slate-700 hover:text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm hover:shadow-blue-600/20"
+            title="View projects"
+          >
+            <FolderOpen className="w-4 h-4" />
+            Projects
+          </button>
+          <button
+            onClick={() => setShowSaveModal(true)}
+            disabled={tiers.length === 0}
+            className="flex items-center gap-1.5 bg-slate-200 hover:bg-blue-600 text-slate-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm hover:shadow-blue-600/20"
+            title="Save project"
+          >
+            <Save className="w-4 h-4" />
+            Save
+          </button>
           <button
             onClick={handleExport}
             disabled={tiers.length === 0}
-            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm shadow-blue-600/20"
+            className="flex items-center gap-1.5 bg-slate-200 hover:bg-blue-600 text-slate-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm hover:shadow-blue-600/20"
             title="Export cake design"
           >
             <Download className="w-4 h-4" />
@@ -1231,9 +1341,7 @@ export default function Page(): ReactNode {
             >
               <div className="space-y-6">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                    Project Name / Customer Name
-                  </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Project Name / Customer Name</label>
                   <input
                     type="text"
                     required
@@ -1246,9 +1354,7 @@ export default function Page(): ReactNode {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                    Date
-                  </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Date</label>
                   <input
                     type="date"
                     required
@@ -1259,9 +1365,7 @@ export default function Page(): ReactNode {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">
-                    Export Format
-                  </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Export Format</label>
                   <div className="flex gap-4">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -1291,8 +1395,14 @@ export default function Page(): ReactNode {
                 <div className="text-xs text-slate-500">
                   <p className="font-semibold mb-1">File name:</p>
                   <p className="font-mono text-slate-600">
-                    {exportModalName || "[Project Name]"}_{exportModalDate ? (() => { const [year, month, day] = exportModalDate.split("-"); return `${day}-${month}-${year}`; })() : "[DD-MM-YYYY]"}.
-                    {exportType === "png" ? "png" : "pdf"}
+                    {exportModalName || "[Project Name]"}_
+                    {exportModalDate
+                      ? (() => {
+                          const [year, month, day] = exportModalDate.split("-");
+                          return `${day}-${month}-${year}`;
+                        })()
+                      : "[DD-MM-YYYY]"}
+                    .{exportType === "png" ? "png" : "pdf"}
                   </p>
                 </div>
               </div>
@@ -1319,6 +1429,53 @@ export default function Page(): ReactNode {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Save Project Modal */}
+      <SaveProjectModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSave={handleSaveProject}
+        tiers={tiers}
+        decorations={decorations}
+        isSaving={isSavingProject}
+      />
+
+      {/* Projects Modal */}
+      <ProjectsModal
+        isOpen={showProjectsModal}
+        onClose={() => setShowProjectsModal(false)}
+        onLoad={handleLoadProject}
+      />
+
+      {/* Reset Confirmation Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
+              <h3 className="font-bold text-slate-800 text-lg">Start New Design?</h3>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-slate-600 text-sm leading-relaxed">
+                Are you sure you want to start a new cake design? All changes will be lost.
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex gap-3 justify-end bg-slate-50">
+              <button
+                onClick={() => setShowResetModal(false)}
+                className="px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmReset}
+                className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                Start New
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -4,7 +4,7 @@ import { Mail, Lock, ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
 import Navigation from "./Navigation";
 import Footer from "./Footer";
-import { useRouter } from "@tanstack/react-router";
+import { useRouter, Link } from "@tanstack/react-router";
 
 const LogIn = () => {
   const router = useRouter();
@@ -255,13 +255,13 @@ const LogIn = () => {
 
             <p className="text-center text-xs text-slate-500">
               By signing in, you agree to our{" "}
-              <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
+              <Link to="/terms-of-service" className="text-blue-600 hover:text-blue-700 font-medium">
                 Terms of Service
-              </a>{" "}
+              </Link>{" "}
               and{" "}
-              <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
+              <Link to="/privacy-policy" className="text-blue-600 hover:text-blue-700 font-medium">
                 Privacy Policy
-              </a>
+              </Link>
             </p>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import Navigation from "./Navigation";
 import Footer from "./Footer";
 
-const App = () => {
+export const PricingPage = () => {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       {/* Navigation */}
@@ -85,5 +85,3 @@ const App = () => {
     </div>
   );
 };
-
-export default App;

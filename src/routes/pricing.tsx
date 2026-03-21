@@ -1,11 +1,7 @@
-// routes/about.tsx
 import { createFileRoute } from '@tanstack/react-router'
-import Pricing_Page from '../components/Pricing_Page' // <--- REPLACE THIS
+import Navigation from '../components/Navigation'
+import Footer from '../components/Footer'
 
 export const Route = createFileRoute('/pricing')({
   component: Pricing,
 })
-
-function Pricing() {
-  return <Pricing_Page /> // <--- RENDER PLACEHOLDER
-}

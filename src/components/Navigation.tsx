@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Home, Tag, Hammer, LogIn, Menu, X, User, LogOut } from "lucide-react";
+import { Home, Tag, Hammer, LogIn, Menu, X, User, LogOut, CreditCard } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
 
 type IProps = {
@@ -47,7 +47,7 @@ const Navigation = (props: IProps) => {
 
   const navItems = [
     { name: "Home", icon: <Home size={18} />, href: "/" },
-    { name: "Pricing", icon: <Tag size={18} />, href: "/pricing" },
+    { name: "Pricing", icon: <Tag size={18} />, href: "/pricing-checkout" },
     { name: "Builder", icon: <Hammer size={18} />, href: "/builder" },
   ];
 
@@ -161,6 +161,17 @@ const Navigation = (props: IProps) => {
                         </button>
 
                         <button
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            router.navigate({ to: '/subscription' });
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+                        >
+                          <CreditCard size={16} />
+                          Subscription
+                        </button>
+
+                        <button
                           onClick={handleLogout}
                           disabled={isLoading}
                           className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
@@ -220,6 +231,16 @@ const Navigation = (props: IProps) => {
               Profile
             </button>
             <button
+              onClick={() => {
+                setIsDropdownOpen(false);
+                router.navigate({ to: '/subscription' });
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors"
+            >
+              <CreditCard size={16} />
+              Subscription
+            </button>
+            <button
               onClick={handleLogout}
               disabled={isLoading}
               className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
@@ -236,8 +257,9 @@ const Navigation = (props: IProps) => {
         <div className="md:hidden bg-white border-b border-slate-200 animate-in slide-in-from-top duration-200">
           <div className="px-4 pt-2 pb-6 space-y-1">
             {navItems.map((item) => (
-              <button
+              <a
                 key={item.name}
+                href={item.href}
                 onClick={() => {
                   setActiveTab(item.name);
                   setIsMenuOpen(false);
@@ -248,7 +270,7 @@ const Navigation = (props: IProps) => {
               >
                 {item.icon}
                 {item.name}
-              </button>
+              </a>
             ))}
             {!user && (
               <div className="pt-4 px-4">

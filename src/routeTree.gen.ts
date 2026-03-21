@@ -12,17 +12,26 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TutorialsRouteImport } from './routes/tutorials'
 import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
 import { Route as SupportRouteImport } from './routes/support'
+import { Route as SubscriptionRouteImport } from './routes/subscription'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
+import { Route as PricingCheckoutRouteImport } from './routes/pricing-checkout'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LogInRouteImport } from './routes/log-in'
 import { Route as GettingStartedRouteImport } from './routes/getting-started'
 import { Route as ContactUsRouteImport } from './routes/contact-us'
 import { Route as BuilderRouteImport } from './routes/builder'
 import { Route as BlogRouteImport } from './routes/blog'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutUsRouteImport } from './routes/about-us'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiSubscriptionRouteImport } from './routes/api/subscription'
+import { Route as ApiPortalSessionRouteImport } from './routes/api/portal-session'
+import { Route as ApiCheckoutRouteImport } from './routes/api/checkout'
+import { Route as ApiCancelSubscriptionRouteImport } from './routes/api/cancel-subscription'
+import { Route as AccountBillingRouteImport } from './routes/account.billing'
+import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 
 const TutorialsRoute = TutorialsRouteImport.update({
   id: '/tutorials',
@@ -39,6 +48,11 @@ const SupportRoute = SupportRouteImport.update({
   path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SubscriptionRoute = SubscriptionRouteImport.update({
+  id: '/subscription',
+  path: '/subscription',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
@@ -52,6 +66,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
   id: '/privacy-policy',
   path: '/privacy-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingCheckoutRoute = PricingCheckoutRouteImport.update({
+  id: '/pricing-checkout',
+  path: '/pricing-checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -84,6 +103,11 @@ const BlogRoute = BlogRouteImport.update({
   path: '/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AboutUsRoute = AboutUsRouteImport.update({
   id: '/about-us',
   path: '/about-us',
@@ -94,122 +118,214 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSubscriptionRoute = ApiSubscriptionRouteImport.update({
+  id: '/api/subscription',
+  path: '/api/subscription',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPortalSessionRoute = ApiPortalSessionRouteImport.update({
+  id: '/api/portal-session',
+  path: '/api/portal-session',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCheckoutRoute = ApiCheckoutRouteImport.update({
+  id: '/api/checkout',
+  path: '/api/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCancelSubscriptionRoute = ApiCancelSubscriptionRouteImport.update({
+  id: '/api/cancel-subscription',
+  path: '/api/cancel-subscription',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountBillingRoute = AccountBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AccountRoute,
+} as any)
+const ApiWebhooksStripeRoute = ApiWebhooksStripeRouteImport.update({
+  id: '/api/webhooks/stripe',
+  path: '/api/webhooks/stripe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about-us': typeof AboutUsRoute
+  '/account': typeof AccountRouteWithChildren
   '/blog': typeof BlogRoute
   '/builder': typeof BuilderRoute
   '/contact-us': typeof ContactUsRoute
   '/getting-started': typeof GettingStartedRoute
   '/log-in': typeof LogInRoute
   '/pricing': typeof PricingRoute
+  '/pricing-checkout': typeof PricingCheckoutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
   '/sign-up': typeof SignUpRoute
+  '/subscription': typeof SubscriptionRoute
   '/support': typeof SupportRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/tutorials': typeof TutorialsRoute
+  '/account/billing': typeof AccountBillingRoute
+  '/api/cancel-subscription': typeof ApiCancelSubscriptionRoute
+  '/api/checkout': typeof ApiCheckoutRoute
+  '/api/portal-session': typeof ApiPortalSessionRoute
+  '/api/subscription': typeof ApiSubscriptionRoute
+  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about-us': typeof AboutUsRoute
+  '/account': typeof AccountRouteWithChildren
   '/blog': typeof BlogRoute
   '/builder': typeof BuilderRoute
   '/contact-us': typeof ContactUsRoute
   '/getting-started': typeof GettingStartedRoute
   '/log-in': typeof LogInRoute
   '/pricing': typeof PricingRoute
+  '/pricing-checkout': typeof PricingCheckoutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
   '/sign-up': typeof SignUpRoute
+  '/subscription': typeof SubscriptionRoute
   '/support': typeof SupportRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/tutorials': typeof TutorialsRoute
+  '/account/billing': typeof AccountBillingRoute
+  '/api/cancel-subscription': typeof ApiCancelSubscriptionRoute
+  '/api/checkout': typeof ApiCheckoutRoute
+  '/api/portal-session': typeof ApiPortalSessionRoute
+  '/api/subscription': typeof ApiSubscriptionRoute
+  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about-us': typeof AboutUsRoute
+  '/account': typeof AccountRouteWithChildren
   '/blog': typeof BlogRoute
   '/builder': typeof BuilderRoute
   '/contact-us': typeof ContactUsRoute
   '/getting-started': typeof GettingStartedRoute
   '/log-in': typeof LogInRoute
   '/pricing': typeof PricingRoute
+  '/pricing-checkout': typeof PricingCheckoutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
   '/sign-up': typeof SignUpRoute
+  '/subscription': typeof SubscriptionRoute
   '/support': typeof SupportRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/tutorials': typeof TutorialsRoute
+  '/account/billing': typeof AccountBillingRoute
+  '/api/cancel-subscription': typeof ApiCancelSubscriptionRoute
+  '/api/checkout': typeof ApiCheckoutRoute
+  '/api/portal-session': typeof ApiPortalSessionRoute
+  '/api/subscription': typeof ApiSubscriptionRoute
+  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/about-us'
+    | '/account'
     | '/blog'
     | '/builder'
     | '/contact-us'
     | '/getting-started'
     | '/log-in'
     | '/pricing'
+    | '/pricing-checkout'
     | '/privacy-policy'
     | '/profile'
     | '/sign-up'
+    | '/subscription'
     | '/support'
     | '/terms-of-service'
     | '/tutorials'
+    | '/account/billing'
+    | '/api/cancel-subscription'
+    | '/api/checkout'
+    | '/api/portal-session'
+    | '/api/subscription'
+    | '/api/webhooks/stripe'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about-us'
+    | '/account'
     | '/blog'
     | '/builder'
     | '/contact-us'
     | '/getting-started'
     | '/log-in'
     | '/pricing'
+    | '/pricing-checkout'
     | '/privacy-policy'
     | '/profile'
     | '/sign-up'
+    | '/subscription'
     | '/support'
     | '/terms-of-service'
     | '/tutorials'
+    | '/account/billing'
+    | '/api/cancel-subscription'
+    | '/api/checkout'
+    | '/api/portal-session'
+    | '/api/subscription'
+    | '/api/webhooks/stripe'
   id:
     | '__root__'
     | '/'
     | '/about-us'
+    | '/account'
     | '/blog'
     | '/builder'
     | '/contact-us'
     | '/getting-started'
     | '/log-in'
     | '/pricing'
+    | '/pricing-checkout'
     | '/privacy-policy'
     | '/profile'
     | '/sign-up'
+    | '/subscription'
     | '/support'
     | '/terms-of-service'
     | '/tutorials'
+    | '/account/billing'
+    | '/api/cancel-subscription'
+    | '/api/checkout'
+    | '/api/portal-session'
+    | '/api/subscription'
+    | '/api/webhooks/stripe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutUsRoute: typeof AboutUsRoute
+  AccountRoute: typeof AccountRouteWithChildren
   BlogRoute: typeof BlogRoute
   BuilderRoute: typeof BuilderRoute
   ContactUsRoute: typeof ContactUsRoute
   GettingStartedRoute: typeof GettingStartedRoute
   LogInRoute: typeof LogInRoute
   PricingRoute: typeof PricingRoute
+  PricingCheckoutRoute: typeof PricingCheckoutRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ProfileRoute: typeof ProfileRoute
   SignUpRoute: typeof SignUpRoute
+  SubscriptionRoute: typeof SubscriptionRoute
   SupportRoute: typeof SupportRoute
   TermsOfServiceRoute: typeof TermsOfServiceRoute
   TutorialsRoute: typeof TutorialsRoute
+  ApiCancelSubscriptionRoute: typeof ApiCancelSubscriptionRoute
+  ApiCheckoutRoute: typeof ApiCheckoutRoute
+  ApiPortalSessionRoute: typeof ApiPortalSessionRoute
+  ApiSubscriptionRoute: typeof ApiSubscriptionRoute
+  ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -235,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/subscription': {
+      id: '/subscription'
+      path: '/subscription'
+      fullPath: '/subscription'
+      preLoaderRoute: typeof SubscriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-up': {
       id: '/sign-up'
       path: '/sign-up'
@@ -254,6 +377,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy-policy'
       fullPath: '/privacy-policy'
       preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing-checkout': {
+      id: '/pricing-checkout'
+      path: '/pricing-checkout'
+      fullPath: '/pricing-checkout'
+      preLoaderRoute: typeof PricingCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -298,6 +428,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/about-us': {
       id: '/about-us'
       path: '/about-us'
@@ -312,24 +449,85 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/subscription': {
+      id: '/api/subscription'
+      path: '/api/subscription'
+      fullPath: '/api/subscription'
+      preLoaderRoute: typeof ApiSubscriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/portal-session': {
+      id: '/api/portal-session'
+      path: '/api/portal-session'
+      fullPath: '/api/portal-session'
+      preLoaderRoute: typeof ApiPortalSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/checkout': {
+      id: '/api/checkout'
+      path: '/api/checkout'
+      fullPath: '/api/checkout'
+      preLoaderRoute: typeof ApiCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cancel-subscription': {
+      id: '/api/cancel-subscription'
+      path: '/api/cancel-subscription'
+      fullPath: '/api/cancel-subscription'
+      preLoaderRoute: typeof ApiCancelSubscriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account/billing': {
+      id: '/account/billing'
+      path: '/billing'
+      fullPath: '/account/billing'
+      preLoaderRoute: typeof AccountBillingRouteImport
+      parentRoute: typeof AccountRoute
+    }
+    '/api/webhooks/stripe': {
+      id: '/api/webhooks/stripe'
+      path: '/api/webhooks/stripe'
+      fullPath: '/api/webhooks/stripe'
+      preLoaderRoute: typeof ApiWebhooksStripeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
+
+interface AccountRouteChildren {
+  AccountBillingRoute: typeof AccountBillingRoute
+}
+
+const AccountRouteChildren: AccountRouteChildren = {
+  AccountBillingRoute: AccountBillingRoute,
+}
+
+const AccountRouteWithChildren =
+  AccountRoute._addFileChildren(AccountRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutUsRoute: AboutUsRoute,
+  AccountRoute: AccountRouteWithChildren,
   BlogRoute: BlogRoute,
   BuilderRoute: BuilderRoute,
   ContactUsRoute: ContactUsRoute,
   GettingStartedRoute: GettingStartedRoute,
   LogInRoute: LogInRoute,
   PricingRoute: PricingRoute,
+  PricingCheckoutRoute: PricingCheckoutRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   ProfileRoute: ProfileRoute,
   SignUpRoute: SignUpRoute,
+  SubscriptionRoute: SubscriptionRoute,
   SupportRoute: SupportRoute,
   TermsOfServiceRoute: TermsOfServiceRoute,
   TutorialsRoute: TutorialsRoute,
+  ApiCancelSubscriptionRoute: ApiCancelSubscriptionRoute,
+  ApiCheckoutRoute: ApiCheckoutRoute,
+  ApiPortalSessionRoute: ApiPortalSessionRoute,
+  ApiSubscriptionRoute: ApiSubscriptionRoute,
+  ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
