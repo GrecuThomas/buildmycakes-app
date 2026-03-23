@@ -1,10 +1,23 @@
 import { createFileRoute } from '@tanstack/react-router';
 import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
 const STRIPE_RETURN_URL = process.env.VITE_SITE_URL || 'http://localhost:3000';
+
+// Helper to get service role client for database operations
+function getAdminSupabaseClient() {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceRoleKey);
+}
 
 export const Route = createFileRoute('/api/checkout')({
   component: () => null,
@@ -46,17 +59,22 @@ export const Route = createFileRoute('/api/checkout')({
 
           // Get or create Stripe customer
           let customerId: string;
+          const adminClient = getAdminSupabaseClient();
+          console.log('[Checkout] Getting or creating customer for user:', user.id);
 
-          const { data: existingCustomer } = await supabase
+          const { data: existingCustomer, error: queryError } = await adminClient
             .from('customers')
             .select('stripe_customer_id')
-            .eq('user_id', user.id)
-            .single();
+            .eq('user_id', user.id);
 
-          if (existingCustomer?.stripe_customer_id) {
-            customerId = existingCustomer.stripe_customer_id;
+          console.log('[Checkout] Customer query result:', existingCustomer, 'Error:', queryError);
+
+          if (existingCustomer && existingCustomer.length > 0 && existingCustomer[0]?.stripe_customer_id) {
+            customerId = existingCustomer[0].stripe_customer_id;
+            console.log('[Checkout] Found existing customer:', customerId);
           } else {
             // Create new Stripe customer
+            console.log('[Checkout] Creating new Stripe customer for user:', user.id);
             const customer = await stripe.customers.create({
               email: user.email,
               metadata: {
@@ -64,13 +82,24 @@ export const Route = createFileRoute('/api/checkout')({
               },
             });
             customerId = customer.id;
+            console.log('[Checkout] Created Stripe customer:', customerId);
 
-            // Save to database
-            await supabase.from('customers').insert({
-              user_id: user.id,
-              stripe_customer_id: customerId,
-              email: user.email,
-            });
+            // Save to database using admin client (bypasses RLS)
+            console.log('[Checkout] Inserting customer record:', { user_id: user.id, stripe_customer_id: customerId, email: user.email });
+            const { error: insertError, data: insertData } = await adminClient
+              .from('customers')
+              .insert({
+                user_id: user.id,
+                stripe_customer_id: customerId,
+                email: user.email,
+              });
+
+            console.log('[Checkout] Insert response - Data:', insertData, 'Error:', insertError);
+
+            if (insertError) {
+              console.error('[Checkout] Error inserting customer:', insertError);
+              throw insertError;
+            }
           }
 
           // Create checkout session
@@ -83,7 +112,7 @@ export const Route = createFileRoute('/api/checkout')({
                 quantity: 1,
               },
             ],
-            success_url: `${STRIPE_RETURN_URL}/account/billing?success=true`,
+            success_url: `${STRIPE_RETURN_URL}/subscription?success=true`,
             cancel_url: `${STRIPE_RETURN_URL}/pricing?canceled=true`,
           });
 

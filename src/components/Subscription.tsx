@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, CreditCard, Calendar, Check, AlertCircle } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
+import { ArrowLeft, CreditCard, Calendar, Check, AlertCircle } from "lucide-react";
 import Navigation from "./Navigation";
 import Footer from "./Footer";
 import { getSubscriptionDetails } from "../server/stripe.functions";
@@ -12,6 +12,7 @@ interface SubscriptionData {
 }
 
 const Subscription = () => {
+  console.log('[Subscription Component] Rendering...');
   const router = useRouter();
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,31 +21,44 @@ const Subscription = () => {
   useEffect(() => {
     const fetchSubscription = async () => {
       try {
+        console.log('[Subscription useEffect] Running...');
         setIsLoading(true);
         setError('');
-
-        const { supabase } = await import("../lib/supabase");
-        const { data: { session } } = await supabase.auth.getSession();
-
+        
+        // Get the current session with auth token
+        const { supabase } = await import('../lib/supabase');
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        console.log('[Subscription] Got session:', session?.user?.id, 'Error:', sessionError);
+        
         if (!session?.access_token) {
-          throw new Error('Not authenticated. Please log in first.');
+          console.log('[Subscription] No session, redirecting to login');
+          await router.navigate({ to: '/log-in' });
+          return;
         }
-
-        const response = await (getSubscriptionDetails as any)({
-          data: { authToken: session.access_token },
-        });
-
+        
+        console.log('[Subscription] Fetching subscription details with token...');
+        const response = await getSubscriptionDetails({ data: { authToken: session.access_token } });
+        console.log('[Subscription] Got response:', response);
+        
         setSubscriptionData(response);
       } catch (err: any) {
+        console.error('[Subscription] Caught error:', err);
+        
+        // If it's an auth error, redirect to login
+        if (err.message?.includes('Not authenticated') || err.message?.includes('auth')) {
+          await router.navigate({ to: '/log-in' });
+          return;
+        }
+        
         setError(err.message || 'Failed to load subscription');
-        console.error('Error:', err);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchSubscription();
-  }, []);
+  }, [router]);
 
   const formatDate = (date: string | Date | null) => {
     if (!date) return 'N/A';

@@ -1,11 +1,24 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
 const STRIPE_RETURN_URL = process.env.VITE_SITE_URL || 'http://localhost:3000';
+
+// Helper to get service role client for database operations (bypasses RLS)
+function getAdminSupabaseClient() {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceRoleKey);
+}
 
 /**
  * Create or get a Stripe customer for the authenticated user
@@ -103,77 +116,102 @@ export const getUserSubscription = createServerFn({ method: 'GET' })
   });
 
 /**
- * Get detailed subscription information including payment methods and plan details
+ * Get detailed subscription information for the authenticated user
+ * Matches users with their subscriptions from Supabase
  */
-export const getSubscriptionDetails = createServerFn({ method: 'POST' })
+/**
+ * Get detailed subscription information for the authenticated user
+ * Matches users with their subscriptions from Supabase
+ */
+export const getSubscriptionDetails = createServerFn({ method: 'GET' })
   .inputValidator(z.object({ authToken: z.string() }))
   .handler(async ({ data }) => {
     try {
-      // Verify auth token and get user ID
-      const authClient = await import('../lib/supabase').then(m => m.supabase);
-      const { data: { user } } = await authClient.auth.getUser(data.authToken);
+      console.log('[getSubscriptionDetails] Starting with auth token...');
+      
+      // Get user from auth token using regular client
+      const { data: { user }, error: authError } = await supabase.auth.getUser(data.authToken);
+      
+      console.log('[getSubscriptionDetails] Auth check - User:', user?.id, 'Error:', authError);
       
       if (!user) {
-        throw new Error('Not authenticated');
-      }
-
-      // Get customer record
-      const { data: customer } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!customer) {
+        console.log('[getSubscriptionDetails] No authenticated user found');
         return { hasPayment: false, subscription: null, paymentMethods: [] };
       }
 
-      // Get subscriptions
-      const { data: subscriptions } = await supabase
+      console.log('[getSubscriptionDetails] Looking up customer for user:', user.id);
+      console.log(user);
+
+      // Get customer record for this user - use ADMIN client to bypass RLS
+      const adminClient = getAdminSupabaseClient();
+      const { data: customers, error: customerError } = await (adminClient as any)
+        .from('customers')
+        .select('id, stripe_customer_id, email')
+        .eq('user_id', user.id);
+
+      console.log('[getSubscriptionDetails] Customer query - customers:', customers?.length, 'Error:', customerError);
+
+      if (customerError) {
+        console.error('[getSubscriptionDetails] Error fetching customer:', customerError);
+        return { hasPayment: false, subscription: null, paymentMethods: [] };
+      }
+
+      const customerRecord = customers?.[0];
+
+      if (!customerRecord) {
+        console.log('[getSubscriptionDetails] No customer record found for user:', user.id);
+        return { hasPayment: false, subscription: null, paymentMethods: [] };
+      }
+
+      console.log('[getSubscriptionDetails] Found customer:', customerRecord.id);
+
+      // Get subscriptions for this customer - use ADMIN client to bypass RLS
+      const { data: subscriptions, error: subsError } = await (adminClient as any)
         .from('subscriptions')
         .select('*')
-        .eq('customer_id', customer.id)
+        .eq('customer_id', customerRecord.id)
         .order('created_at', { ascending: false });
 
-      if (!subscriptions || subscriptions.length === 0) {
+      console.log('[getSubscriptionDetails] Subscriptions query - found:', subscriptions?.length, 'Error:', subsError);
+
+      if (subsError) {
+        console.error('[getSubscriptionDetails] Error fetching subscriptions:', subsError);
         return { hasPayment: false, subscription: null, paymentMethods: [] };
       }
 
-      const activeSubscription = subscriptions.find(s => s.status === 'active');
+      if (!subscriptions || subscriptions.length === 0) {
+        console.log('[getSubscriptionDetails] No subscriptions found for customer:', customerRecord.id);
+        return { hasPayment: false, subscription: null, paymentMethods: [] };
+      }
+
+      console.log('[getSubscriptionDetails] Found', subscriptions.length, 'subscriptions');
+
+      // Get the most recent active subscription
+      const activeSubscription = subscriptions.find((s: any) => s.status === 'active');
+      const mostRecent = activeSubscription || subscriptions[0];
+
+      console.log('[getSubscriptionDetails] Returning subscription:', mostRecent.id, 'Status:', mostRecent.status);
 
       // Get payment methods from Stripe
-      const paymentMethods = await stripe.paymentMethods.list({
-        customer: customer.stripe_customer_id,
-        type: 'card',
-      });
-
-      // Get subscription details from Stripe if it exists
-      let stripeSubscription = null;
-      if (activeSubscription) {
-        try {
-          stripeSubscription = await stripe.subscriptions.retrieve(activeSubscription.stripe_subscription_id);
-        } catch (error) {
-          console.error('Error retrieving Stripe subscription:', error);
-        }
+      let paymentMethods: any[] = [];
+      try {
+        const methods = await stripe.paymentMethods.list({
+          customer: customerRecord.stripe_customer_id,
+          type: 'card',
+        });
+        paymentMethods = methods.data || [];
+      } catch (error) {
+        console.warn('[getSubscriptionDetails] Could not fetch payment methods:', error);
       }
 
       return {
         hasPayment: true,
-        subscription: activeSubscription ? {
-          ...activeSubscription,
-          stripeData: stripeSubscription,
-        } : null,
-        paymentMethods: paymentMethods.data.map(pm => ({
-          id: pm.id,
-          brand: pm.card?.brand,
-          last4: pm.card?.last4,
-          expMonth: pm.card?.exp_month,
-          expYear: pm.card?.exp_year,
-        })),
+        subscription: mostRecent,
+        paymentMethods,
       };
     } catch (error) {
-      console.error('Error getting subscription details:', error);
-      throw error;
+      console.error('[getSubscriptionDetails] Unexpected error:', error);
+      return { hasPayment: false, subscription: null, paymentMethods: [] };
     }
   });
 
