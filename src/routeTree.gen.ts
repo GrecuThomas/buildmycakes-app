@@ -17,7 +17,6 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as PricingCheckoutRouteImport } from './routes/pricing-checkout'
-import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LogInRouteImport } from './routes/log-in'
 import { Route as GettingStartedRouteImport } from './routes/getting-started'
 import { Route as ContactUsRouteImport } from './routes/contact-us'
@@ -71,11 +70,6 @@ const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
 const PricingCheckoutRoute = PricingCheckoutRouteImport.update({
   id: '/pricing-checkout',
   path: '/pricing-checkout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogInRoute = LogInRouteImport.update({
@@ -158,7 +152,6 @@ export interface FileRoutesByFullPath {
   '/contact-us': typeof ContactUsRoute
   '/getting-started': typeof GettingStartedRoute
   '/log-in': typeof LogInRoute
-  '/pricing': typeof PricingRoute
   '/pricing-checkout': typeof PricingCheckoutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
@@ -183,7 +176,6 @@ export interface FileRoutesByTo {
   '/contact-us': typeof ContactUsRoute
   '/getting-started': typeof GettingStartedRoute
   '/log-in': typeof LogInRoute
-  '/pricing': typeof PricingRoute
   '/pricing-checkout': typeof PricingCheckoutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
@@ -209,7 +201,6 @@ export interface FileRoutesById {
   '/contact-us': typeof ContactUsRoute
   '/getting-started': typeof GettingStartedRoute
   '/log-in': typeof LogInRoute
-  '/pricing': typeof PricingRoute
   '/pricing-checkout': typeof PricingCheckoutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
@@ -236,7 +227,6 @@ export interface FileRouteTypes {
     | '/contact-us'
     | '/getting-started'
     | '/log-in'
-    | '/pricing'
     | '/pricing-checkout'
     | '/privacy-policy'
     | '/profile'
@@ -261,7 +251,6 @@ export interface FileRouteTypes {
     | '/contact-us'
     | '/getting-started'
     | '/log-in'
-    | '/pricing'
     | '/pricing-checkout'
     | '/privacy-policy'
     | '/profile'
@@ -286,7 +275,6 @@ export interface FileRouteTypes {
     | '/contact-us'
     | '/getting-started'
     | '/log-in'
-    | '/pricing'
     | '/pricing-checkout'
     | '/privacy-policy'
     | '/profile'
@@ -312,7 +300,6 @@ export interface RootRouteChildren {
   ContactUsRoute: typeof ContactUsRoute
   GettingStartedRoute: typeof GettingStartedRoute
   LogInRoute: typeof LogInRoute
-  PricingRoute: typeof PricingRoute
   PricingCheckoutRoute: typeof PricingCheckoutRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ProfileRoute: typeof ProfileRoute
@@ -384,13 +371,6 @@ declare module '@tanstack/react-router' {
       path: '/pricing-checkout'
       fullPath: '/pricing-checkout'
       preLoaderRoute: typeof PricingCheckoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/log-in': {
@@ -514,7 +494,6 @@ const rootRouteChildren: RootRouteChildren = {
   ContactUsRoute: ContactUsRoute,
   GettingStartedRoute: GettingStartedRoute,
   LogInRoute: LogInRoute,
-  PricingRoute: PricingRoute,
   PricingCheckoutRoute: PricingCheckoutRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   ProfileRoute: ProfileRoute,

@@ -69,10 +69,14 @@ export const createCheckoutSession = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ priceId: z.string(), customerId: z.string() }))
   .handler(async ({ data }) => {
     try {
+      // Use 'payment' mode for one-time purchases, 'subscription' for recurring
+      const ONETIME_PRICE_ID = 'price_1TEQpIF6w6kZyHeYzgaYvyTi'; // 24-hour pass
+      const checkoutMode = data.priceId === ONETIME_PRICE_ID ? 'payment' : 'subscription';
+
       // Create checkout session
       const session = await stripe.checkout.sessions.create({
         customer: data.customerId,
-        mode: 'subscription',
+        mode: checkoutMode,
         line_items: [
           {
             price: data.priceId,
@@ -80,7 +84,7 @@ export const createCheckoutSession = createServerFn({ method: 'POST' })
           },
         ],
         success_url: `${STRIPE_RETURN_URL}/subscription?success=true`,
-        cancel_url: `${STRIPE_RETURN_URL}/pricing?canceled=true`,
+        cancel_url: `${STRIPE_RETURN_URL}/pricing-checkout`,
       });
 
       if (!session.url) {
@@ -186,11 +190,31 @@ export const getSubscriptionDetails = createServerFn({ method: 'GET' })
 
       console.log('[getSubscriptionDetails] Found', subscriptions.length, 'subscriptions');
 
-      // Get the most recent active subscription
-      const activeSubscription = subscriptions.find((s: any) => s.status === 'active');
-      const mostRecent = activeSubscription || subscriptions[0];
+      // Filter out expired subscriptions and get the active one
+      const now = new Date();
+      const validSubscriptions = subscriptions.filter((s: any) => {
+        // Skip canceled subscriptions
+        if (s.status === 'canceled') return false;
+        
+        // Skip subscriptions where current_period_end has passed
+        if (s.current_period_end && new Date(s.current_period_end) < now) {
+          console.log('[getSubscriptionDetails] Subscription expired:', s.id, 'ended at:', s.current_period_end);
+          return false;
+        }
+        
+        return true;
+      });
 
-      console.log('[getSubscriptionDetails] Returning subscription:', mostRecent.id, 'Status:', mostRecent.status);
+      if (validSubscriptions.length === 0) {
+        console.log('[getSubscriptionDetails] No valid (non-expired) subscriptions found');
+        return { hasPayment: false, subscription: null, paymentMethods: [] };
+      }
+
+      // Get the most recent active subscription
+      const activeSubscription = validSubscriptions.find((s: any) => s.status === 'active');
+      const mostRecent = activeSubscription || validSubscriptions[0];
+
+      console.log('[getSubscriptionDetails] Returning subscription:', mostRecent.id, 'Status:', mostRecent.status, 'Expires:', mostRecent.current_period_end);
 
       // Get payment methods from Stripe
       let paymentMethods: any[] = [];

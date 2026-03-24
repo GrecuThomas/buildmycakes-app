@@ -150,30 +150,44 @@ const Subscription = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-100 pt-6">
-                      {/* Current Period */}
-                      <div>
-                        <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Current Billing Period</h3>
-                        <div className="space-y-2">
+                      {/* Current Period / Valid Until */}
+                      {subscriptionData.subscription.stripe_subscription_id?.startsWith('onetime_') ? (
+                        <div>
+                          <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Valid Until</h3>
                           <div className="flex items-center gap-2 text-slate-700">
                             <Calendar size={16} className="text-slate-400" />
-                            <span className="text-sm">
-                              {formatDate(subscriptionData.subscription.current_period_start)} to{' '}
+                            <span className="text-sm font-medium">
                               {formatDate(subscriptionData.subscription.current_period_end)}
                             </span>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Next Billing Date */}
-                      <div>
-                        <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Next Billing Date</h3>
-                        <div className="flex items-center gap-2 text-slate-700">
-                          <Calendar size={16} className="text-slate-400" />
-                          <span className="text-sm font-medium">
-                            {formatDate(subscriptionData.subscription.current_period_end)}
-                          </span>
+                      ) : (
+                        <div>
+                          <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Current Billing Period</h3>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-slate-700">
+                              <Calendar size={16} className="text-slate-400" />
+                              <span className="text-sm">
+                                {formatDate(subscriptionData.subscription.current_period_start)} to{' '}
+                                {formatDate(subscriptionData.subscription.current_period_end)}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
+
+                      {/* Next Billing Date - Only show for recurring subscriptions */}
+                      {!subscriptionData.subscription.stripe_subscription_id?.startsWith('onetime_') && (
+                        <div>
+                          <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Next Billing Date</h3>
+                          <div className="flex items-center gap-2 text-slate-700">
+                            <Calendar size={16} className="text-slate-400" />
+                            <span className="text-sm font-medium">
+                              {formatDate(subscriptionData.subscription.current_period_end)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Expiration Status */}
                       {subscriptionData.subscription.cancel_at_period_end && (

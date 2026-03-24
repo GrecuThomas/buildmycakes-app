@@ -103,9 +103,13 @@ export const Route = createFileRoute('/api/checkout')({
           }
 
           // Create checkout session
+          // Use 'payment' mode for one-time purchases, 'subscription' for recurring
+          const ONETIME_PRICE_ID = 'price_1TEQpIF6w6kZyHeYzgaYvyTi'; // 24-hour pass
+          const checkoutMode = priceId === ONETIME_PRICE_ID ? 'payment' : 'subscription';
+
           const session = await stripe.checkout.sessions.create({
             customer: customerId,
-            mode: 'subscription',
+            mode: checkoutMode,
             line_items: [
               {
                 price: priceId,
@@ -113,7 +117,7 @@ export const Route = createFileRoute('/api/checkout')({
               },
             ],
             success_url: `${STRIPE_RETURN_URL}/subscription?success=true`,
-            cancel_url: `${STRIPE_RETURN_URL}/pricing?canceled=true`,
+            cancel_url: `${STRIPE_RETURN_URL}/pricing-checkout`,
           });
 
           if (!session.url) {

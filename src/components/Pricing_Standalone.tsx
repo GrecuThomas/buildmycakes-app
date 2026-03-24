@@ -12,48 +12,60 @@ interface PricingTier {
   popular?: boolean;
 }
 
+// Parse **text** syntax and render as bold
+const parseFeatureText = (text: string) => {
+  const parts = text.split(/(\*\*[^*]+\*\*)/);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+};
+
 // Replace these with your actual Stripe price IDs
 const PRICING_TIERS: PricingTier[] = [
   {
     id: 'basic',
-    name: 'Free',
+    name: 'The Hobbyist (Free)',
     price: 0,
     priceId: 'price_1234567890', // Get from Stripe Dashboard
-    description: 'Perfect for getting started',
+    description: 'Perfect for practicing your designs or planning a one-off family celebration',
     features: [
-      'Up to 2 saved designs',
-      'Basic customization tools',
-      'Up to 2 tiers per cake',
-      'Access to square shape',
+      '**Full Design Suite**: Access to all tier shapes, sizes, and decoration tools.',
+      '**Standard Export**: Save your sketch as a standard-resolution PNG.',
+      '**Ad-Supported**: Helps us keep the lights on while you build.',
+      '**"Draft" Watermark**: A subtle overlay on your canvas and final exports.',
+      '**Ad-Wall on Export**: A short 15-second wait to generate your final file.',
     ],
   },
   {
     id: 'standard',
-    name: 'Standard',
-    price: 4.99,
-    priceId: 'price_1TDLuXF6w6kZyHeYz3sm9um5', // Get from Stripe Dashboard
-    description: 'For serious cake builders',
+    name: 'The 24-Hour Sprint ($2.00)',
+    price: 2.00,
+    priceId: 'price_1TEQpIF6w6kZyHeYzgaYvyTi', // Get from Stripe Dashboard
+    description: 'Ideal for the baker with a big client meeting tomorrow. Get everything you need for the price of a cupcake.',
     popular: true,
     features: [
-      'Unlimited saved designs',
-      'Unlimited sketch exports',
-      'High-quality PNG/PDF exports',
-      'No ads',
-      'No watermarks',
-      'Access to additional content',
+      '**24h All-Access Pass**: Every "Pro" feature unlocked for a full day.',
+      '**Zero Advertisements**: No distractions while you\'re in the creative zone.',
+      '**No Watermarks**: Clean, professional sketches that look great in a portfolio.',
+      '**Professional Exports**: High-resolution PDF or SVG files ready for printing or emailing to clients.',
+      '**Instant Downloads**: Skip the export timer and get your files immediately.',
     ],
   },
   {
     id: 'pro',
-    name: 'Pro',
-    price: 9.99,
-    priceId: 'price_1TDLv7F6w6kZyHeYl5aaHUgI', // Get from Stripe Dashboard
-    description: 'For bakeries and businesses',
+    name: 'The Master Baker ($5.00/mo)',
+    price: 5.00,
+    priceId: 'price_1TDLuXF6w6kZyHeYz3sm9um5', // Get from Stripe Dashboard
+    description: 'For the busy pro who designs cakes every week. The ultimate value for your business. Get everything you need for the price of a cupcake.',
     features: [
-      'Everything in Standard',
-      'Pricing logic for complex cakes',
-      'Early access to new features',
-      'Priority customer support',
+      '**Unlimited Pro Design**: Everything in the 24h Pass, but permanent.',
+      '**Priority Support**: Have a feature request? You\'re at the top of our list.',
+      '**Save & Edit**: (Future Feature) Save your designs to your account to edit them later.',
+      '**Client Branding**: (Future Feature) Add your own bakery logo to the final export instead of ours.',
+      '**Cancel Anytime**: No long-term contracts; stay as long as you\'re baking!',
     ],
   },
 ];
@@ -144,7 +156,7 @@ export const Pricing = () => {
               {/* Price */}
               <div className="mb-6">
                 <span className="text-5xl font-bold text-slate-900">${tier.price}</span>
-                <span className="text-slate-600 ml-2">/month</span>
+                {tier.id !== 'standard' && <span className="text-slate-600 ml-2">/month</span>}
               </div>
 
               {/* Subscribe Button */}
@@ -163,7 +175,7 @@ export const Pricing = () => {
                     Processing...
                   </>
                 ) : (
-                  tier.id === 'basic' ? 'Build Now!' : 'Subscribe Now'
+                  tier.id === 'basic' ? 'Build Now' : 'Subscribe Now'
                 )}
               </button>
 
@@ -172,7 +184,7 @@ export const Pricing = () => {
                 {tier.features.map((feature, index) => (
                   <div key={index} className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-slate-700">{feature}</span>
+                    <span className="text-slate-700">{parseFeatureText(feature)}</span>
                   </div>
                 ))}
               </div>
