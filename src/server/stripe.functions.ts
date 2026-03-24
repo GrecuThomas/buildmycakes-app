@@ -216,12 +216,13 @@ export const getSubscriptionDetails = createServerFn({ method: 'GET' })
 
       console.log('[getSubscriptionDetails] Returning subscription:', mostRecent.id, 'Status:', mostRecent.status, 'Expires:', mostRecent.current_period_end);
 
-      // Get payment methods from Stripe
+      // Get payment methods from Stripe (only first one)
       let paymentMethods: any[] = [];
       try {
         const methods = await stripe.paymentMethods.list({
           customer: customerRecord.stripe_customer_id,
           type: 'card',
+          limit: 1, // Only fetch the first/default payment method
         });
         paymentMethods = methods.data || [];
       } catch (error) {

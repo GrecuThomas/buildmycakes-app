@@ -69,6 +69,19 @@ const Subscription = () => {
     });
   };
 
+  const getSubscriptionPlanName = () => {
+    const priceId = subscriptionData?.subscription?.stripe_price_id;
+    // One-time
+    if (priceId === 'price_1TEQpIF6w6kZyHeYzgaYvyTi') {
+      return 'The 24-Hour Sprint ($2.00)';
+    }
+    // Recurring monthly
+    if (priceId === 'price_1TDLuXF6w6kZyHeYz3sm9um5') {
+      return 'The Master Baker ($5.00/mo)';
+    }
+    return 'Active';
+  };
+
   const getCardBrandIcon = (brand: string | undefined) => {
     if (!brand) return '💳';
     const brandLower = brand.toLowerCase();
@@ -142,8 +155,8 @@ const Subscription = () => {
                         <h2 className="text-2xl font-bold text-slate-900 mb-2">Active Subscription</h2>
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                          <span className="text-sm font-medium text-green-700 capitalize">
-                            {subscriptionData.subscription.status}
+                          <span className="text-sm font-medium text-green-700">
+                            {getSubscriptionPlanName()}
                           </span>
                         </div>
                       </div>
@@ -167,7 +180,7 @@ const Subscription = () => {
                           <div className="space-y-2">
                             <div className="flex items-center gap-2 text-slate-700">
                               <Calendar size={16} className="text-slate-400" />
-                              <span className="text-sm">
+                              <span className="text-sm font-medium">
                                 {formatDate(subscriptionData.subscription.current_period_start)} to{' '}
                                 {formatDate(subscriptionData.subscription.current_period_end)}
                               </span>
@@ -208,20 +221,29 @@ const Subscription = () => {
                   <div className="bg-white rounded-xl border border-slate-200 p-6">
                     <h2 className="text-xl font-bold text-slate-900 mb-4">Payment Methods</h2>
                     <div className="space-y-3">
-                      {subscriptionData.paymentMethods.map((method) => (
-                        <div key={method.id} className="flex items-center gap-4 p-4 border border-slate-100 rounded-lg">
-                          <span className="text-2xl">{getCardBrandIcon(method.brand)}</span>
-                          <div className="flex-1">
-                            <p className="font-medium text-slate-900 capitalize">
-                              {method.brand} •••• {method.last4}
-                            </p>
-                            <p className="text-sm text-slate-500">
-                              Expires {method.expMonth}/{method.expYear}
-                            </p>
+                      {subscriptionData.paymentMethods.map((method) => {
+                        console.log('[Subscription] Payment method data:', method);
+                        const card = (method as any).card;
+                        const brand = card?.brand || (method as any).brand;
+                        const last4 = card?.last4 || (method as any).last4;
+                        const expMonth = card?.exp_month || (method as any).expMonth;
+                        const expYear = card?.exp_year || (method as any).expYear;
+                        
+                        return (
+                          <div key={method.id} className="flex items-center gap-4 p-4 border border-slate-100 rounded-lg">
+                            <span className="text-2xl">{getCardBrandIcon(brand)}</span>
+                            <div className="flex-1">
+                              <p className="font-medium text-slate-900 capitalize">
+                                {brand} •••• {last4}
+                              </p>
+                              <p className="text-sm text-slate-500">
+                                Expires {expMonth}/{expYear}
+                              </p>
+                            </div>
+                            <Check className="text-green-600" size={20} />
                           </div>
-                          <Check className="text-green-600" size={20} />
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
