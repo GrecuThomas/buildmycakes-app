@@ -63,19 +63,44 @@ const LogIn = () => {
     }
   };
 
-  const handleGoogleSuccess = async (_credentialResponse: any) => {
+  const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
       setIsLoading(true);
       setError("");
 
-      // Google OAuth is handled by Supabase's GoogleLogin component
-      // Just redirect after successful auth
-      console.log("Google Sign-In successful");
+      // Import Supabase dynamically on the client side
+      const { supabase } = await import("../lib/supabase");
+
+      // Extract the ID token from the Google credential response
+      const { credential } = credentialResponse;
+      
+      if (!credential) {
+        throw new Error('No credential received from Google');
+      }
+
+      console.log("Google ID token received, signing in to Supabase...");
+
+      // Sign in to Supabase using the Google ID token
+      const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: credential,
+      });
+
+      if (authError) {
+        throw new Error(authError.message);
+      }
+
+      if (!authData.user) {
+        throw new Error('Login failed - no user returned');
+      }
+
+      console.log("Google Sign-In successful:", authData.user.email);
 
       // Redirect to home page after successful login
       await router.navigate({ to: "/" });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Google Sign-In failed. Please try again.';
+      console.error('Google Sign-In error:', errorMessage);
       setError(errorMessage);
       setIsLoading(false);
     }

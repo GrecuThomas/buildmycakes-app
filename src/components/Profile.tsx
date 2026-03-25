@@ -34,8 +34,18 @@ const Profile = () => {
         const { data: { user: authUser } } = await supabase.auth.getUser();
         setUser(authUser);
         if (authUser) {
-          setFirstName(authUser?.user_metadata?.firstName || '');
-          setLastName(authUser?.user_metadata?.lastName || '');
+          let first = authUser?.user_metadata?.firstName || '';
+          let last = authUser?.user_metadata?.lastName || '';
+          
+          // If no separate firstName/lastName but has name (from Google OAuth), parse it
+          if (!first && !last && authUser?.user_metadata?.name) {
+            const nameParts = authUser.user_metadata.name.split(' ');
+            first = nameParts[0] || '';
+            last = nameParts.slice(1).join(' ') || '';
+          }
+          
+          setFirstName(first);
+          setLastName(last);
           setLocation(authUser?.user_metadata?.location || '');
         }
       } catch (error) {
@@ -201,12 +211,12 @@ const Profile = () => {
             {/* Avatar Section */}
             <div className="flex flex-col items-center space-y-4">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-2xl">
-                {user?.user_metadata?.firstName?.[0]}
-                {user?.user_metadata?.lastName?.[0]}
+                {firstName?.[0]}
+                {lastName?.[0]}
               </div>
               <div className="text-center space-y-1">
                 <p className="text-xl font-bold text-slate-900">
-                  {user?.user_metadata?.firstName} {user?.user_metadata?.lastName}
+                  {firstName} {lastName}
                 </p>
                 <p className="text-sm text-slate-500">Profile</p>
               </div>

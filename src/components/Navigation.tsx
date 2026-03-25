@@ -81,10 +81,37 @@ const Navigation = (props: IProps) => {
   };
 
   const getAvatarInitials = () => {
-    if (user?.user_metadata?.firstName && user?.user_metadata?.lastName) {
-      return `${user.user_metadata.firstName[0]}${user.user_metadata.lastName[0]}`.toUpperCase();
+    let firstName = user?.user_metadata?.firstName || '';
+    let lastName = user?.user_metadata?.lastName || '';
+    
+    // If no separate firstName/lastName but has name (from Google OAuth), parse it
+    if (!firstName && !lastName && user?.user_metadata?.name) {
+      const nameParts = user.user_metadata.name.split(' ');
+      firstName = nameParts[0] || '';
+      lastName = nameParts.slice(1).join(' ') || '';
+    }
+    
+    if (firstName && lastName) {
+      return `${firstName[0]}${lastName[0]}`.toUpperCase();
     }
     return user?.email?.[0]?.toUpperCase() || '?';
+  };
+
+  const getDisplayName = () => {
+    let firstName = user?.user_metadata?.firstName || '';
+    let lastName = user?.user_metadata?.lastName || '';
+    
+    // If no separate firstName/lastName but has name (from Google OAuth), parse it
+    if (!firstName && !lastName && user?.user_metadata?.name) {
+      const nameParts = user.user_metadata.name.split(' ');
+      firstName = nameParts[0] || '';
+      lastName = nameParts.slice(1).join(' ') || '';
+    }
+    
+    if (firstName || lastName) {
+      return `${firstName} ${lastName}`.trim();
+    }
+    return 'User';
   };
 
   return (
@@ -144,7 +171,7 @@ const Navigation = (props: IProps) => {
                   {isDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-slate-200 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="p-4 border-b border-slate-100">
-                        <p className="text-sm font-medium text-slate-900">{user?.user_metadata?.firstName || 'User'}</p>
+                        <p className="text-sm font-medium text-slate-900">{getDisplayName()}</p>
                         <p className="text-xs text-slate-500 truncate">{user?.email}</p>
                       </div>
 
@@ -216,7 +243,7 @@ const Navigation = (props: IProps) => {
       {isDropdownOpen && user && (
         <div className="md:hidden bg-white border-b border-slate-200 animate-in fade-in duration-200">
           <div className="px-4 py-3 border-b border-slate-100">
-            <p className="text-sm font-medium text-slate-900">{user?.user_metadata?.firstName || 'User'}</p>
+            <p className="text-sm font-medium text-slate-900">{getDisplayName()}</p>
             <p className="text-xs text-slate-500 truncate">{user?.email}</p>
           </div>
           <div className="px-4 py-2 space-y-1">

@@ -27,7 +27,7 @@ const parseFeatureText = (text: string) => {
 const PRICING_TIERS: PricingTier[] = [
   {
     id: 'basic',
-    name: 'The Hobbyist (Free)',
+    name: 'The Hobbyist',
     price: 0,
     priceId: 'price_1234567890', // Get from Stripe Dashboard
     description: 'Perfect for practicing your designs or planning a one-off family celebration',
@@ -41,7 +41,7 @@ const PRICING_TIERS: PricingTier[] = [
   },
   {
     id: 'standard',
-    name: 'The 24-Hour Sprint ($2.00)',
+    name: 'The 24-Hour Sprint',
     price: 2.00,
     priceId: 'price_1TEQpIF6w6kZyHeYzgaYvyTi', // Get from Stripe Dashboard
     description: 'Ideal for the baker with a big client meeting tomorrow. Get everything you need for the price of a cupcake.',
@@ -56,7 +56,7 @@ const PRICING_TIERS: PricingTier[] = [
   },
   {
     id: 'pro',
-    name: 'The Master Baker ($5.00/mo)',
+    name: 'The Master Baker',
     price: 5.00,
     priceId: 'price_1TDLuXF6w6kZyHeYz3sm9um5', // Get from Stripe Dashboard
     description: 'For the busy pro who designs cakes every week. The ultimate value for your business. Get everything you need for the price of a cupcake.',

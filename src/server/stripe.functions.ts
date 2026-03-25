@@ -160,14 +160,44 @@ export const getSubscriptionDetails = createServerFn({ method: 'GET' })
         return { hasPayment: false, subscription: null, paymentMethods: [] };
       }
 
-      const customerRecord = customers?.[0];
+      let customerRecord = customers?.[0];
 
       if (!customerRecord) {
         console.log('[getSubscriptionDetails] No customer record found for user:', user.id);
-        return { hasPayment: false, subscription: null, paymentMethods: [] };
+        console.log('[getSubscriptionDetails] Auto-creating Stripe customer...');
+        
+        try {
+          // Create new Stripe customer
+          const newStripeCustomer = await stripe.customers.create({
+            email: user.email,
+            metadata: {
+              userId: user.id,
+            },
+          });
+
+          // Save to database
+          await (adminClient as any)
+            .from('customers')
+            .insert({
+              user_id: user.id,
+              stripe_customer_id: newStripeCustomer.id,
+              email: user.email,
+            });
+
+          customerRecord = {
+            id: newStripeCustomer.id,
+            stripe_customer_id: newStripeCustomer.id,
+            user_id: user.id,
+          };
+
+          console.log('[getSubscriptionDetails] Created new customer:', newStripeCustomer.id);
+        } catch (error) {
+          console.error('[getSubscriptionDetails] Error creating customer:', error);
+          return { hasPayment: false, subscription: null, paymentMethods: [] };
+        }
       }
 
-      console.log('[getSubscriptionDetails] Found customer:', customerRecord.id);
+      console.log('[getSubscriptionDetails] Found/created customer:', customerRecord.id);
 
       // Get subscriptions for this customer - use ADMIN client to bypass RLS
       const { data: subscriptions, error: subsError } = await (adminClient as any)
