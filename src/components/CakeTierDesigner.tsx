@@ -27,7 +27,7 @@ interface Decoration {
 interface DecorationListItem {
   id: string;
   name: string;
-  Icon: FC<SVGProps<SVGSVGElement>>;
+  svgPath: string;
   type: "flower" | "leaf";
 }
 
@@ -45,6 +45,7 @@ interface TierShapeProps {
   maxW: number;
   isHovered: boolean;
   onClick: (tier: Tier) => void;
+  showDimensions?: boolean;
 }
 
 interface ShapeIconProps {
@@ -77,92 +78,26 @@ interface SVGPoint {
 // --- HELPER FUNCTIONS ---
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-// --- SVG DECORATION ASSETS (Line art only) ---
-const DecorIcons = {
-  Flower1: (props: SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M12 2v7M12 15v7M2 12h7M15 12h7M5 5l5 5M14 14l5 5M19 5l-5 5M10 14l-5 5" />
-    </svg>
-  ),
-  Flower2: (props: SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 22V12" />
-      <path d="M7 12c0-4 1-8 5-10 4 2 5 6 5 10H7z" />
-      <path d="M7 12l2.5-3L12 12l2.5-3L17 12" />
-    </svg>
-  ),
-  Flower3: (props: SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 22V14" />
-      <path d="M12 14c-4 0-6-3-6-6s2-5 6-5 6 2 6 5-2 6-6 6z" />
-      <path d="M12 14c-2 0-3-1-3-3s1-2 3-2 2 1 2 2-1 3-2 3z" />
-    </svg>
-  ),
-  Flower4: (props: SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 22v-4" />
-      <path d="M12 18c-4 0-8-3-8-8 3 0 6 2 8 8z" />
-      <path d="M12 18c4 0 8-3 8-8-3 0-6 2-8 8z" />
-      <path d="M12 18c-2 0-4-4-4-10 2 0 4 4 4 10z" />
-      <path d="M12 18c2 0 4-4 4-10-2 0-4 4-4 10z" />
-    </svg>
-  ),
-  Flower5: (props: SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 12c0-4-4-6-4-6s-4 2-4 6 4 4 4 4 4-2 4-4z" />
-      <path d="M12 12c0-4 4-6 4-6s4 2 4 6-4 4-4 4-4-2-4-4z" />
-      <path d="M12 12c0 4-4 6-4 6s-4-2-4-6 4-4 4-4 4 2 4 4z" />
-      <path d="M12 12c0 4 4 6 4 6s4-2 4-6-4-4-4-4-4 2-4 4z" />
-      <circle cx="12" cy="12" r="2" />
-    </svg>
-  ),
-  Flower6: (props: SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 2v6" />
-      <path d="M12 8c-4 0-6 4-6 9l2 3 4-2 4 2 2-3c0-5-2-9-6-9z" />
-      <path d="M12 8v5" />
-    </svg>
-  ),
-  Leaf1: (props: SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 22V2" />
-      <path d="M12 2C6 2 3 7 12 22 21 7 18 2 12 2z" />
-      <path d="M12 8l-3 3M12 14l-3 3M12 11l3-3M12 17l3-3" />
-    </svg>
-  ),
-  Leaf2: (props: SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 22V2" />
-      <path d="M12 18l-5-4M12 14l-5-4M12 10l-4-3M12 16l5-4M12 12l5-4M12 8l4-3" />
-    </svg>
-  ),
-  Leaf3: (props: SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 22v-6" />
-      <path d="M12 16c-3 0-6-2-8-5 1-2 4-1 5 1s3-8 3-8 2 10 3 8 4-3 5-1c-2 3-5 5-8 5z" />
-      <path d="M12 16l-3-4M12 16l3-4M12 16V6" />
-    </svg>
-  ),
-};
-
+// --- SVG DECORATION ASSETS FROM PUBLIC FOLDER ---
 const decorationsList: DecorationListItem[] = [
-  { id: "f1", name: "Daisy", Icon: DecorIcons.Flower1, type: "flower" },
-  { id: "f2", name: "Tulip", Icon: DecorIcons.Flower2, type: "flower" },
-  { id: "f3", name: "Rose", Icon: DecorIcons.Flower3, type: "flower" },
-  { id: "f4", name: "Lotus", Icon: DecorIcons.Flower4, type: "flower" },
-  { id: "f5", name: "Petal", Icon: DecorIcons.Flower5, type: "flower" },
-  { id: "f6", name: "Bell", Icon: DecorIcons.Flower6, type: "flower" },
-  { id: "l1", name: "Oval", Icon: DecorIcons.Leaf1, type: "leaf" },
-  { id: "l2", name: "Fern", Icon: DecorIcons.Leaf2, type: "leaf" },
-  { id: "l3", name: "Lobe", Icon: DecorIcons.Leaf3, type: "leaf" },
+  { id: "f1", name: "Flower 1", svgPath: "/flower1.svg", type: "flower" },
+  { id: "f2", name: "Flower 2", svgPath: "/flower2.svg", type: "flower" },
+  { id: "f3", name: "Flower 3", svgPath: "/flower3.svg", type: "flower" },
+  { id: "f4", name: "Flower 4", svgPath: "/flower4.svg", type: "flower" },
+  { id: "f5", name: "Flower 5", svgPath: "/flower5.svg", type: "flower" },
+  { id: "l1", name: "Leaf 1", svgPath: "/leaf1.svg", type: "leaf" },
+  { id: "l2", name: "Leaf 2", svgPath: "/leaf2.svg", type: "leaf" },
+  { id: "l3", name: "Leaf 3", svgPath: "/leaf3.svg", type: "leaf" },
+  { id: "l4", name: "Leaf 4", svgPath: "/leaf4.svg", type: "leaf" },
+  { id: "l5", name: "Leaf 5", svgPath: "/leaf5.svg", type: "leaf" },
+  { id: "l6", name: "Leaf 6", svgPath: "/leaf6.svg", type: "leaf" },
+  { id: "l7", name: "Leaf 7", svgPath: "/leaf7.svg", type: "leaf" },
 ];
 
 // --- DECORATION RENDERER & TRANSFORM UI ---
 const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, onInteract, onDelete }) => {
   const decorInfo = decorationsList.find((d) => d.id === decor.iconId);
   if (!decorInfo) return null;
-  const Icon = decorInfo.Icon;
 
   return (
     <g
@@ -177,15 +112,13 @@ const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, on
       {/* Invisible hit box tightened to the core of the shape to avoid accidental selection */}
       <rect x="-10" y="-10" width="20" height="20" fill="transparent" />
 
-      {/* Centered Icon mathematically constrained to the bounding box */}
-      <g className="text-slate-800">
-        <Icon width="24" height="24" x="-12" y="-12" />
-      </g>
+      {/* SVG Image from public folder */}
+      <image x="-12" y="-12" width="24" height="24" href={decorInfo.svgPath} />
 
       {isActive && (
         <g className="decor-ui">
           {/* Bounding Box */}
-          <rect x="-16" y="-16" width="32" height="32" fill="none" stroke="#3b82f6" strokeWidth="1" strokeDasharray="2,2" />
+          <rect x="-16" y="-16" width="32" height="32" fill="none" stroke="#3b82f6" strokeWidth={0.4 / decor.scale} strokeDasharray="2,2" />
 
           {/* Delete Handle (Top Right) */}
           <g
@@ -200,9 +133,9 @@ const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, on
               onDelete(decor.id);
             }}
           >
-            <circle cx="0" cy="0" r="4" fill="#ef4444" />
-            <line x1="-1.5" y1="-1.5" x2="1.5" y2="1.5" stroke="white" strokeWidth="1" />
-            <line x1="1.5" y1="-1.5" x2="-1.5" y2="1.5" stroke="white" strokeWidth="1" />
+            <circle cx="0" cy="0" r={1.6 / decor.scale} fill="#ef4444" />
+            <line x1={-0.56 / decor.scale} y1={-0.56 / decor.scale} x2={0.56 / decor.scale} y2={0.56 / decor.scale} stroke="white" strokeWidth={0.4 / decor.scale} />
+            <line x1={0.56 / decor.scale} y1={-0.56 / decor.scale} x2={-0.56 / decor.scale} y2={0.56 / decor.scale} stroke="white" strokeWidth={0.4 / decor.scale} />
           </g>
 
           {/* Scale Handle (Bottom Right) */}
@@ -214,8 +147,8 @@ const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, on
               onInteract(e, "scale", decor);
             }}
           >
-            <circle cx="0" cy="0" r="4" fill="#3b82f6" />
-            <circle cx="0" cy="0" r="1.5" fill="white" />
+            <circle cx="0" cy="0" r={1.6 / decor.scale} fill="#3b82f6" />
+            <circle cx="0" cy="0" r={0.56 / decor.scale} fill="white" />
           </g>
 
           {/* Rotate Handle (Top Center) */}
@@ -227,9 +160,9 @@ const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, on
               onInteract(e, "rotate", decor);
             }}
           >
-            <line x1="0" y1="0" x2="0" y2="6" stroke="#10b981" strokeWidth="1" />
-            <circle cx="0" cy="0" r="4" fill="#10b981" />
-            <circle cx="0" cy="0" r="1.5" fill="white" />
+            <line x1="0" y1="0" x2="0" y2={2.8 / decor.scale} stroke="#10b981" strokeWidth={0.4 / decor.scale} />
+            <circle cx="0" cy="0" r={1.6 / decor.scale} fill="#10b981" />
+            <circle cx="0" cy="0" r={0.56 / decor.scale} fill="white" />
           </g>
         </g>
       )}
@@ -238,7 +171,7 @@ const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, on
 };
 
 // --- SVG SHAPE RENDERER ---
-const TierShape: FC<TierShapeProps> = ({ tier, yBase, maxW, isHovered, onClick }) => {
+const TierShape: FC<TierShapeProps> = ({ tier, yBase, maxW, isHovered, onClick, showDimensions = true }) => {
   const { shape, width: w, height: h } = tier;
   const topY = yBase - h;
   const p = 0.25; // Perspective factor (gives the 3D isometric tilt)
@@ -351,66 +284,70 @@ const TierShape: FC<TierShapeProps> = ({ tier, yBase, maxW, isHovered, onClick }
     <g className="cursor-pointer transition-all duration-200" onClick={() => onClick(tier)}>
       {shapeElements}
 
-      {/* Front Label (Width) */}
-      <text
-        x="0"
-        y={yBase + (w / 2) * p - 0.5}
-        textAnchor="middle"
-        alignmentBaseline="baseline"
-        fontFamily="monospace"
-        fontSize="2px"
-        fontWeight="bold"
-        fill="#334155"
-        style={{
-          paintOrder: "stroke",
-          stroke: "#ffffff",
-          strokeWidth: "0.4px",
-          strokeLinecap: "round",
-          strokeLinejoin: "round",
-          userSelect: "none",
-          pointerEvents: "none",
-        }}
-      >
-        {shape === "circle" || shape === "circle_platform" ? "Ø" : shape === "hexagon" ? "⬡" : "□"} {w}cm
-      </text>
+      {showDimensions && (
+        <>
+          {/* Front Label (Width) */}
+          <text
+            x="0"
+            y={yBase + (w / 2) * p - 0.5}
+            textAnchor="middle"
+            alignmentBaseline="baseline"
+            fontFamily="monospace"
+            fontSize="2px"
+            fontWeight="bold"
+            fill="#334155"
+            style={{
+              paintOrder: "stroke",
+              stroke: "#ffffff",
+              strokeWidth: "0.4px",
+              strokeLinecap: "round",
+              strokeLinejoin: "round",
+              userSelect: "none",
+              pointerEvents: "none",
+            }}
+          >
+            {shape === "circle" || shape === "circle_platform" ? "Ø" : shape === "hexagon" ? "⬡" : "□"} {w}cm
+          </text>
 
-      {/* --- Dimension Lines (Right Side) --- */}
-      {/* Top extension line */}
-      <line x1={w / 2 + 5} y1={topY} x2={dimX} y2={topY} stroke="#94a3b8" strokeDasharray="2,2" strokeWidth="0.125" />
-      {/* Bottom extension line */}
-      <line x1={w / 2 + 5} y1={yBase} x2={dimX} y2={yBase} stroke="#94a3b8" strokeDasharray="2,2" strokeWidth="0.125" />
-      {/* Vertical dimension line */}
-      <line
-        x1={dimX - 10}
-        y1={topY}
-        x2={dimX - 10}
-        y2={yBase}
-        stroke="#64748b"
-        strokeWidth="0.25"
-        markerStart="url(#arrow)"
-        markerEnd="url(#arrow)"
-      />
-      {/* Height Label */}
-      <text
-        x={dimX - 5}
-        y={midY}
-        alignmentBaseline="middle"
-        fontFamily="monospace"
-        fontSize="2px"
-        fontWeight="bold"
-        fill="#334155"
-        style={{
-          paintOrder: "stroke",
-          stroke: "#f8fafc",
-          strokeWidth: "0.4px",
-          strokeLinecap: "round",
-          strokeLinejoin: "round",
-          userSelect: "none",
-          pointerEvents: "none",
-        }}
-      >
-        {h}cm
-      </text>
+          {/* --- Dimension Lines (Right Side) --- */}
+          {/* Top extension line */}
+          <line x1={w / 2 + 5} y1={topY} x2={dimX} y2={topY} stroke="#94a3b8" strokeDasharray="2,2" strokeWidth="0.125" />
+          {/* Bottom extension line */}
+          <line x1={w / 2 + 5} y1={yBase} x2={dimX} y2={yBase} stroke="#94a3b8" strokeDasharray="2,2" strokeWidth="0.125" />
+          {/* Vertical dimension line */}
+          <line
+            x1={dimX - 10}
+            y1={topY}
+            x2={dimX - 10}
+            y2={yBase}
+            stroke="#64748b"
+            strokeWidth="0.25"
+            markerStart="url(#arrow)"
+            markerEnd="url(#arrow)"
+          />
+          {/* Height Label */}
+          <text
+            x={dimX - 5}
+            y={midY}
+            alignmentBaseline="middle"
+            fontFamily="monospace"
+            fontSize="2px"
+            fontWeight="bold"
+            fill="#334155"
+            style={{
+              paintOrder: "stroke",
+              stroke: "#f8fafc",
+              strokeWidth: "0.4px",
+              strokeLinecap: "round",
+              strokeLinejoin: "round",
+              userSelect: "none",
+              pointerEvents: "none",
+            }}
+          >
+            {h}cm
+          </text>
+        </>
+      )}
     </g>
   );
 };
@@ -429,6 +366,7 @@ export default function Page(): ReactNode {
   const [exportModalName, setExportModalName] = useState<string>("");
   const [exportModalDate, setExportModalDate] = useState<string>("");
   const [exportType, setExportType] = useState<"png" | "pdf" | null>(null);
+  const [showDimensions, setShowDimensions] = useState<boolean>(true);
   const panStartRef = useRef<SVGPoint>({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -993,13 +931,13 @@ export default function Page(): ReactNode {
       {/* Main Workspace */}
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden h-full">
         {/* Left Sidebar (Decorations) */}
-        <aside className="w-full md:w-72 bg-white border-r border-slate-200 flex flex-col h-1/2 md:h-full z-10 shadow-lg md:shadow-none shrink-0">
+        <aside className="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col h-1/2 md:h-full z-10 shadow-lg md:shadow-none shrink-0">
           <div className="p-6 flex-1 overflow-y-auto">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Decorations</h2>
 
-            <div className="mb-6">
+            <div className="mb-8">
               <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-3">Flowers</h3>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 {decorationsList
                   .filter((d) => d.type === "flower")
                   .map((decor) => (
@@ -1007,14 +945,9 @@ export default function Page(): ReactNode {
                       key={decor.id}
                       draggable
                       onDragStart={(e) => handleDragStart(e, "decoration", decor.id)}
-                      className="flex flex-col items-center justify-center p-3 rounded-xl border-2 border-slate-100 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 cursor-grab active:cursor-grabbing transition-colors group"
+                      className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-slate-100 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 cursor-grab active:cursor-grabbing transition-colors group"
                     >
-                      <div className="text-slate-400 group-hover:text-emerald-600 mb-2 transition-colors pointer-events-none">
-                        <decor.Icon className="w-6 h-6" />
-                      </div>
-                      <span className="text-[10px] font-medium text-slate-500 capitalize text-center leading-tight pointer-events-none">
-                        {decor.name}
-                      </span>
+                      <img src={decor.svgPath} alt={decor.name} className="w-14 h-14 object-contain pointer-events-none group-hover:scale-110 transition-transform" />
                     </div>
                   ))}
               </div>
@@ -1022,7 +955,7 @@ export default function Page(): ReactNode {
 
             <div>
               <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-3">Leaves</h3>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 {decorationsList
                   .filter((d) => d.type === "leaf")
                   .map((decor) => (
@@ -1030,14 +963,9 @@ export default function Page(): ReactNode {
                       key={decor.id}
                       draggable
                       onDragStart={(e) => handleDragStart(e, "decoration", decor.id)}
-                      className="flex flex-col items-center justify-center p-3 rounded-xl border-2 border-slate-100 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 cursor-grab active:cursor-grabbing transition-colors group"
+                      className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-slate-100 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 cursor-grab active:cursor-grabbing transition-colors group"
                     >
-                      <div className="text-slate-400 group-hover:text-emerald-600 mb-2 transition-colors pointer-events-none">
-                        <decor.Icon className="w-6 h-6" />
-                      </div>
-                      <span className="text-[10px] font-medium text-slate-500 capitalize text-center leading-tight pointer-events-none">
-                        {decor.name}
-                      </span>
+                      <img src={decor.svgPath} alt={decor.name} className="w-14 h-14 object-contain pointer-events-none group-hover:scale-110 transition-transform" />
                     </div>
                   ))}
               </div>
@@ -1069,9 +997,22 @@ export default function Page(): ReactNode {
             }}
           />
 
-          {/* Zoom controls hint */}
-          <div className="absolute bottom-6 left-6 z-20 bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm text-xs font-mono text-slate-500 pointer-events-none">
-            Zoom: {Math.round(zoom * 100)}% (Scroll to zoom)
+          {/* Zoom controls and dimensions toggle */}
+          <div className="absolute bottom-6 left-6 z-20 flex gap-2">
+            <div className="bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm text-xs font-mono text-slate-500 pointer-events-none">
+              Zoom: {Math.round(zoom * 100)}% (Scroll to zoom)
+            </div>
+            <button
+              onClick={() => setShowDimensions(!showDimensions)}
+              className={`bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg border shadow-sm text-xs font-semibold transition-colors ${
+                showDimensions
+                  ? "border-blue-300 text-blue-600 hover:bg-blue-50"
+                  : "border-slate-200 text-slate-500 hover:bg-slate-50"
+              }`}
+              title={showDimensions ? "Hide dimensions" : "Show dimensions"}
+            >
+              {showDimensions ? "Dimensions: On" : "Dimensions: Off"}
+            </button>
           </div>
 
           {/* Tier counter and total height */}
@@ -1137,6 +1078,7 @@ export default function Page(): ReactNode {
                     onClick={(t) => {
                       if (!hasDragged) openModal("edit", undefined, t);
                     }}
+                    showDimensions={showDimensions}
                   />
                 ))}
 
