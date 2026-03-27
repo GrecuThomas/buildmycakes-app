@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check, Loader2 } from 'lucide-react';
 import { useRouter } from '@tanstack/react-router';
 
@@ -73,6 +73,37 @@ const PRICING_TIERS: PricingTier[] = [
 export const Pricing = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
+
+  // Fetch user and subscription status on mount
+  useEffect(() => {
+    const fetchUserAndSubscription = async () => {
+      try {
+        const { supabase } = await import('../lib/supabase');
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          setUser(session.user);
+          
+          // Fetch subscription details using server function
+          const { getSubscriptionDetails } = await import('../server/stripe.functions');
+          const response = await getSubscriptionDetails({ data: { authToken: session.access_token } });
+          
+          console.log('Subscription response:', response);
+          console.log('Subscription object:', response.subscription);
+          
+          if (response.subscription) {
+            setCurrentSubscription(response.subscription);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user/subscription:', error);
+      }
+    };
+
+    fetchUserAndSubscription();
+  }, []);
 
   const handleSubscribe = async (priceId: string) => {
     try {
@@ -130,67 +161,95 @@ export const Pricing = () => {
 
       {/* Pricing Cards */}
       <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-        {PRICING_TIERS.map((tier) => (
-          <div
-            key={tier.id}
-            className={`relative rounded-3xl transition-all duration-300 ${
-              tier.popular
-                ? 'border-2 border-blue-600 shadow-2xl scale-105 bg-white'
-                : 'border border-slate-200 shadow-lg bg-white hover:shadow-xl'
-            }`}
-          >
-            {/* Popular Badge */}
-            {tier.popular && (
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-1 rounded-full text-sm font-bold">
-                  Most Popular
-                </span>
-              </div>
-            )}
+        {PRICING_TIERS.map((tier) => {
+          const isCurrentPlan = currentSubscription?.stripe_price_id === tier.priceId;
+          console.log(`Tier: ${tier.name}, priceId: ${tier.priceId}, currentPrice_id: ${currentSubscription?.stripe_price_id}, isCurrentPlan: ${isCurrentPlan}`);
+          
+          return (
+            <div
+              key={tier.id}
+              className={`relative rounded-3xl transition-all duration-300 ${
+                tier.popular
+                  ? 'border-2 border-blue-600 shadow-2xl scale-105 bg-white'
+                  : 'border border-slate-200 shadow-lg bg-white hover:shadow-xl'
+              }`}
+            >
+              {/* Popular Badge */}
+              {tier.popular && !isCurrentPlan && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-1 rounded-full text-sm font-bold">
+                    Most Popular
+                  </span>
+                </div>
+              )}
 
-            <div className="p-8">
-              {/* Tier Name */}
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">{tier.name}</h2>
-              <p className="text-slate-600 text-sm mb-6">{tier.description}</p>
+              {/* Current Plan Badge */}
+              {isCurrentPlan && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-1 rounded-full text-sm font-bold">
+                    Current Plan
+                  </span>
+                </div>
+              )}
 
-              {/* Price */}
-              <div className="mb-6">
-                <span className="text-5xl font-bold text-slate-900">${tier.price}</span>
-                {tier.id !== 'standard' && <span className="text-slate-600 ml-2">/month</span>}
-              </div>
+              <div className="p-8">
+                {/* Tier Name */}
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">{tier.name}</h2>
+                <p className="text-slate-600 text-sm mb-6">{tier.description}</p>
 
-              {/* Subscribe Button */}
-              <button
-                onClick={() => tier.id === 'basic' ? handleBuildNow() : handleSubscribe(tier.priceId)}
-                disabled={isLoading === tier.priceId}
-                className={`w-full py-3 rounded-xl font-bold transition-all mb-8 flex items-center justify-center gap-2 ${
-                  tier.popular
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:translate-y-[-2px]'
-                    : 'bg-slate-100 text-slate-900 hover:bg-slate-200'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                {isLoading === tier.priceId ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  tier.id === 'basic' ? 'Build Now' : 'Subscribe Now'
-                )}
-              </button>
+                {/* Price */}
+                <div className="mb-6">
+                  <span className="text-5xl font-bold text-slate-900">${tier.price}</span>
+                  {tier.id !== 'standard' && <span className="text-slate-600 ml-2">/month</span>}
+                </div>
 
-              {/* Features List */}
-              <div className="space-y-4">
-                {tier.features.map((feature, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-slate-700">{parseFeatureText(feature)}</span>
-                  </div>
-                ))}
+                {/* Subscribe Button */}
+                <button
+                  onClick={() => {
+                    if (tier.id === 'basic') {
+                      handleBuildNow();
+                    } else if (isCurrentPlan) {
+                      router.navigate({ to: '/subscription' });
+                    } else {
+                      handleSubscribe(tier.priceId);
+                    }
+                  }}
+                  disabled={isLoading === tier.priceId || (isCurrentPlan && tier.id !== 'basic')}
+                  className={`w-full py-3 rounded-xl font-bold transition-all mb-8 flex items-center justify-center gap-2 ${
+                    isCurrentPlan && tier.id !== 'basic'
+                      ? 'bg-slate-100 text-slate-900 cursor-default'
+                      : tier.popular
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:translate-y-[-2px]'
+                      : 'bg-slate-100 text-slate-900 hover:bg-slate-200'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isLoading === tier.priceId ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : isCurrentPlan && tier.id !== 'basic' ? (
+                    'Manage'
+                  ) : tier.id === 'basic' ? (
+                    'Build Now'
+                  ) : (
+                    'Subscribe Now'
+                  )}
+                </button>
+
+                {/* Features List */}
+                <div className="space-y-4">
+                  {tier.features.map((feature, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span className="text-slate-700">{parseFeatureText(feature)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* FAQ or Additional Info */}

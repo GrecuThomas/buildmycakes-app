@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useMemo, useRef, FC, SVGProps, ReactNode, MouseEvent } from "react";
+import { useEffect, useState, useMemo, useRef, FC, SVGProps, ReactNode, MouseEvent } from "react";
 import { Circle, Square, Hexagon, Plus, Trash2, ArrowUp, ArrowDown, Move, Download, ArrowLeft, Save, FolderOpen, RotateCcw } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
 import { SaveProjectModal } from "./SaveProjectModal";
 import { ProjectsModal } from "./ProjectsModal";
 import { saveProject } from "../server/projects.functions";
+import { getSubscriptionDetails } from "../server/stripe.functions";
 
 // --- TYPE DEFINITIONS ---
 interface Tier {
@@ -22,6 +23,7 @@ interface Decoration {
   y: number;
   scale: number;
   rotation: number;
+  mirrorFlip?: boolean;
 }
 
 interface DecorationListItem {
@@ -37,6 +39,7 @@ interface DecorationItemProps {
   onSelect: (id: string) => void;
   onInteract: (e: MouseEvent<SVGGElement>, mode: string, decor: Decoration) => void;
   onDelete: (id: string) => void;
+  onMirror: (id: string) => void;
 }
 
 interface TierShapeProps {
@@ -95,7 +98,7 @@ const decorationsList: DecorationListItem[] = [
 ];
 
 // --- DECORATION RENDERER & TRANSFORM UI ---
-const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, onInteract, onDelete }) => {
+const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, onInteract, onDelete, onMirror }) => {
   const decorInfo = decorationsList.find((d) => d.id === decor.iconId);
   if (!decorInfo) return null;
 
@@ -112,8 +115,10 @@ const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, on
       {/* Invisible hit box tightened to the core of the shape to avoid accidental selection */}
       <rect x="-10" y="-10" width="20" height="20" fill="transparent" />
 
-      {/* SVG Image from public folder */}
-      <image x="-12" y="-12" width="24" height="24" href={decorInfo.svgPath} />
+      {/* SVG Image from public folder - with optional mirror flip */}
+      <g transform={decor.mirrorFlip ? "scale(-1, 1)" : undefined}>
+        <image x="-12" y="-12" width="24" height="24" href={decorInfo.svgPath} />
+      </g>
 
       {isActive && (
         <g className="decor-ui">
@@ -134,8 +139,22 @@ const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, on
             }}
           >
             <circle cx="0" cy="0" r={1.6 / decor.scale} fill="#ef4444" />
-            <line x1={-0.56 / decor.scale} y1={-0.56 / decor.scale} x2={0.56 / decor.scale} y2={0.56 / decor.scale} stroke="white" strokeWidth={0.4 / decor.scale} />
-            <line x1={0.56 / decor.scale} y1={-0.56 / decor.scale} x2={-0.56 / decor.scale} y2={0.56 / decor.scale} stroke="white" strokeWidth={0.4 / decor.scale} />
+            <line
+              x1={-0.56 / decor.scale}
+              y1={-0.56 / decor.scale}
+              x2={0.56 / decor.scale}
+              y2={0.56 / decor.scale}
+              stroke="white"
+              strokeWidth={0.4 / decor.scale}
+            />
+            <line
+              x1={0.56 / decor.scale}
+              y1={-0.56 / decor.scale}
+              x2={-0.56 / decor.scale}
+              y2={0.56 / decor.scale}
+              stroke="white"
+              strokeWidth={0.4 / decor.scale}
+            />
           </g>
 
           {/* Scale Handle (Bottom Right) */}
@@ -151,18 +170,32 @@ const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, on
             <circle cx="0" cy="0" r={0.56 / decor.scale} fill="white" />
           </g>
 
+          {/* Mirror Handle (Bottom Left) */}
+          <g
+            transform="translate(-16, 16)"
+            className="cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMirror(decor.id);
+            }}
+          >
+            <circle cx="0" cy="0" r={1.6 / decor.scale} fill="#f59e0b" />
+            <line x1={-1.2 / decor.scale} y1="0" x2={1.2 / decor.scale} y2="0" stroke="white" strokeWidth={0.4 / decor.scale} />
+            <line x1="0" y1={-0.56 / decor.scale} x2="0" y2={0.56 / decor.scale} stroke="white" strokeWidth={0.4 / decor.scale} />
+          </g>
+
           {/* Rotate Handle (Top Center) */}
           <g
-            transform="translate(0, -22)"
+            transform="translate(0, -16)"
             className="cursor-crosshair"
             onMouseDown={(e) => {
               e.stopPropagation();
               onInteract(e, "rotate", decor);
             }}
           >
-            <line x1="0" y1="0" x2="0" y2={2.8 / decor.scale} stroke="#10b981" strokeWidth={0.4 / decor.scale} />
             <circle cx="0" cy="0" r={1.6 / decor.scale} fill="#10b981" />
-            <circle cx="0" cy="0" r={0.56 / decor.scale} fill="white" />
+            {/* Rotation icon SVG */}
+            <image x={-1 / decor.scale} y={-1 / decor.scale} width={2 / decor.scale} height={2 / decor.scale} href="/rotation-icon.svg" />
           </g>
         </g>
       )}
@@ -367,6 +400,7 @@ export default function Page(): ReactNode {
   const [exportModalDate, setExportModalDate] = useState<string>("");
   const [exportType, setExportType] = useState<"png" | "pdf" | null>(null);
   const [showDimensions, setShowDimensions] = useState<boolean>(true);
+  const [hasSubscription, setHasSubscription] = useState<boolean>(false);
   const panStartRef = useRef<SVGPoint>({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -396,6 +430,32 @@ export default function Page(): ReactNode {
   const [showProjectsModal, setShowProjectsModal] = useState<boolean>(false);
   const [isSavingProject, setIsSavingProject] = useState<boolean>(false);
   const [showResetModal, setShowResetModal] = useState<boolean>(false);
+
+  // Check subscription status
+  useEffect(() => {
+    const checkSubscription = async () => {
+      try {
+        const { supabase } = await import("../lib/supabase");
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
+        if (!session?.access_token) {
+          setHasSubscription(false);
+          return;
+        }
+
+        const response = await getSubscriptionDetails({ data: { authToken: session.access_token } });
+        setHasSubscription(response.hasPayment);
+      } catch (error) {
+        console.error("Error checking subscription:", error);
+        setHasSubscription(false);
+      }
+    };
+
+    checkSubscription();
+  }, []);
 
   // Derived calculations for the Canvas SVG
   const { maxW, totalH, viewBounds, tiersWithY, actualTiersCount } = useMemo(() => {
@@ -537,8 +597,51 @@ export default function Page(): ReactNode {
         ctx.drawImage(img, dx, dy, scaledW, scaledH);
         ctx.restore();
 
-        URL.revokeObjectURL(url);
-        resolve({ canvas, exportW, exportH });
+        // Add watermark for free tier users
+        if (!hasSubscription) {
+          // Load the watermark SVG image and draw it in a grid
+          const watermarkImg = new Image();
+          watermarkImg.onload = () => {
+            ctx.save();
+            ctx.globalAlpha = 0.08;
+            ctx.translate(exportW / 2, exportH / 2);
+            ctx.rotate((-45 * Math.PI) / 180);
+
+            // Draw a larger, more spaced out grid of logos
+            const logoWidth = 380; // Logo width (landscape)
+            const logoHeight = 106; // Logo height
+            const gapSize = 120; // Increased gap between logos
+            const totalSpacingX = logoWidth + gapSize; // Total distance between logo centers (horizontal)
+            const totalSpacingY = logoHeight + gapSize; // Total distance between logo centers (vertical)
+
+            // Draw enough logos to cover the entire rotated canvas
+            const extendedRange = Math.max(exportW, exportH) * 2;
+
+            for (let x = -extendedRange; x < extendedRange; x += totalSpacingX) {
+              for (let y = -extendedRange; y < extendedRange; y += totalSpacingY) {
+                ctx.drawImage(watermarkImg, x - logoWidth / 2, y - logoHeight / 2, logoWidth, logoHeight);
+
+                // Draw text below the logo
+                ctx.save();
+                ctx.globalAlpha = 0.08;
+                ctx.font = "bold 36px 'Comic Sans MS', 'Comic Sans', cursive";
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#2563EB";
+                ctx.fillText("buildmycakes.com", x, y + logoHeight / 2 + 25);
+                ctx.restore();
+              }
+            }
+
+            ctx.restore();
+            // Resolve after drawing watermark
+            URL.revokeObjectURL(url);
+            resolve({ canvas, exportW, exportH });
+          };
+          watermarkImg.src = "/main_logo.svg";
+        } else {
+          URL.revokeObjectURL(url);
+          resolve({ canvas, exportW, exportH });
+        }
       };
       img.src = url;
     });
@@ -605,13 +708,15 @@ export default function Page(): ReactNode {
   const handleSaveProject = async (projectName: string): Promise<void> => {
     try {
       setIsSavingProject(true);
-      
+
       // Get auth session
-      const { supabase } = await import('../lib/supabase');
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const { supabase } = await import("../lib/supabase");
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session?.access_token) {
-        throw new Error('Not authenticated. Please log in first.');
+        throw new Error("Not authenticated. Please log in first.");
       }
 
       const result = await (saveProject as any)({
@@ -796,16 +901,20 @@ export default function Page(): ReactNode {
     if (activeDecorId === id) setActiveDecorId(null);
   };
 
+  const handleDecorMirror = (id: string): void => {
+    setDecorations((prev) => prev.map((d) => (d.id === id ? { ...d, mirrorFlip: !d.mirrorFlip } : d)));
+  };
+
   const openModal = (mode: "add" | "edit", shapeType?: string, existingTier?: Tier): void => {
     if (mode === "add" && shapeType) {
       // Default sizing based on shape to give good starting points
-      let defW = 30,
-        defH = shapeType.includes("platform") ? 2 : 15;
+      let defW = 30;
+      let defH = shapeType.includes("platform") ? 2 : defW / 2;
       if (tiers.length > 0) {
         // If adding a new tier, suggest slightly smaller than the top tier
         const topTier = tiers[tiers.length - 1];
         defW = shapeType.includes("platform") ? topTier.width + 5 : Math.max(10, topTier.width - 10);
-        defH = shapeType.includes("platform") ? 2 : topTier.height;
+        defH = shapeType.includes("platform") ? 2 : defW / 2;
       }
       setModal({ isOpen: true, mode: "add", tierId: null, shape: shapeType, width: defW, height: defH });
     } else if (mode === "edit" && existingTier) {
@@ -867,28 +976,7 @@ export default function Page(): ReactNode {
           >
             <ArrowLeft size={20} />
           </button>
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-white w-5 h-5"
-              >
-                <rect x="4" y="17" width="16" height="5" rx="1" />
-                <rect x="7" y="12" width="10" height="5" rx="1" />
-                <rect x="10" y="7" width="4" height="5" rx="1" />
-                <path d="M12 3v4" />
-              </svg>
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-xl font-bold text-slate-800 tracking-tight leading-none">Build My Cakes</h1>
-            </div>
-          </div>
+          <img src="/main_logo.svg" alt="Build My Cakes" className="h-8" />
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -947,7 +1035,11 @@ export default function Page(): ReactNode {
                       onDragStart={(e) => handleDragStart(e, "decoration", decor.id)}
                       className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-slate-100 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 cursor-grab active:cursor-grabbing transition-colors group"
                     >
-                      <img src={decor.svgPath} alt={decor.name} className="w-14 h-14 object-contain pointer-events-none group-hover:scale-110 transition-transform" />
+                      <img
+                        src={decor.svgPath}
+                        alt={decor.name}
+                        className="w-14 h-14 object-contain pointer-events-none group-hover:scale-110 transition-transform"
+                      />
                     </div>
                   ))}
               </div>
@@ -965,7 +1057,11 @@ export default function Page(): ReactNode {
                       onDragStart={(e) => handleDragStart(e, "decoration", decor.id)}
                       className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-slate-100 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 cursor-grab active:cursor-grabbing transition-colors group"
                     >
-                      <img src={decor.svgPath} alt={decor.name} className="w-14 h-14 object-contain pointer-events-none group-hover:scale-110 transition-transform" />
+                      <img
+                        src={decor.svgPath}
+                        alt={decor.name}
+                        className="w-14 h-14 object-contain pointer-events-none group-hover:scale-110 transition-transform"
+                      />
                     </div>
                   ))}
               </div>
@@ -997,6 +1093,31 @@ export default function Page(): ReactNode {
             }}
           />
 
+          {/* Watermark - shown when user has no subscription */}
+          {!hasSubscription && (
+            <div className="absolute inset-0 pointer-events-none overflow-hidden z-30" style={{ opacity: 0.08 }}>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ transform: "rotate(-45deg)" }}>
+                <div className="flex flex-col items-center gap-12" style={{ transform: "scale(2)", width: "200%", height: "200%" }}>
+                  {Array.from({ length: 20 }).map((_, i) => (
+                    <div key={i} className="flex gap-12">
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <div key={j} className="flex flex-col items-center gap-1 flex-shrink-0">
+                          <img src="/main_logo.svg" alt="watermark" className="h-16" />
+                          <span
+                            className="text-[12px] font-semibold whitespace-nowrap text-blue-600"
+                            style={{ fontFamily: "Comic Sans MS, Comic Sans, cursive" }}
+                          >
+                            buildmycakes.com
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Zoom controls and dimensions toggle */}
           <div className="absolute bottom-6 left-6 z-20 flex gap-2">
             <div className="bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm text-xs font-mono text-slate-500 pointer-events-none">
@@ -1005,9 +1126,7 @@ export default function Page(): ReactNode {
             <button
               onClick={() => setShowDimensions(!showDimensions)}
               className={`bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg border shadow-sm text-xs font-semibold transition-colors ${
-                showDimensions
-                  ? "border-blue-300 text-blue-600 hover:bg-blue-50"
-                  : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                showDimensions ? "border-blue-300 text-blue-600 hover:bg-blue-50" : "border-slate-200 text-slate-500 hover:bg-slate-50"
               }`}
               title={showDimensions ? "Hide dimensions" : "Show dimensions"}
             >
@@ -1091,6 +1210,7 @@ export default function Page(): ReactNode {
                     onSelect={setActiveDecorId}
                     onInteract={handleDecorInteract}
                     onDelete={handleDecorDelete}
+                    onMirror={handleDecorMirror}
                   />
                 ))}
               </svg>
@@ -1386,11 +1506,7 @@ export default function Page(): ReactNode {
       />
 
       {/* Projects Modal */}
-      <ProjectsModal
-        isOpen={showProjectsModal}
-        onClose={() => setShowProjectsModal(false)}
-        onLoad={handleLoadProject}
-      />
+      <ProjectsModal isOpen={showProjectsModal} onClose={() => setShowProjectsModal(false)} onLoad={handleLoadProject} />
 
       {/* Reset Confirmation Modal */}
       {showResetModal && (
@@ -1400,9 +1516,7 @@ export default function Page(): ReactNode {
               <h3 className="font-bold text-slate-800 text-lg">Start New Design?</h3>
             </div>
             <div className="px-6 py-4">
-              <p className="text-slate-600 text-sm leading-relaxed">
-                Are you sure you want to start a new cake design? All changes will be lost.
-              </p>
+              <p className="text-slate-600 text-sm leading-relaxed">Are you sure you want to start a new cake design? All changes will be lost.</p>
             </div>
             <div className="px-6 py-4 border-t border-slate-100 flex gap-3 justify-end bg-slate-50">
               <button

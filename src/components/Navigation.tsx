@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Home, Tag, Hammer, LogIn, Menu, X, User, LogOut, CreditCard } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
 
@@ -6,15 +6,23 @@ type IProps = {
   tab: string;
 };
 
+// Cache the current user globally to prevent flash on remounts
+let cachedUser: any = null;
+
 const Navigation = (props: IProps) => {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(props.tab);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(cachedUser);
   const [isLoading, setIsLoading] = useState(false);
+  const initializeRef = useRef(false);
 
   useEffect(() => {
+    // Only initialize once per component instance to prevent re-checking on every mount
+    if (initializeRef.current) return;
+    initializeRef.current = true;
+
     let unsubscribe: (() => void) | undefined;
 
     const initializeAuth = async () => {
@@ -24,13 +32,15 @@ const Navigation = (props: IProps) => {
         // Set up auth state listener - this updates user state automatically
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           (_event, session) => {
-            setUser(session?.user || null);
+            cachedUser = session?.user || null;
+            setUser(cachedUser);
           }
         );
         
         // Check current session (initial load)
         const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user || null);
+        cachedUser = session?.user || null;
+        setUser(cachedUser);
         
         unsubscribe = () => subscription?.unsubscribe();
       } catch (error) {
@@ -119,25 +129,8 @@ const Navigation = (props: IProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           {/* Logo */}
-          <a href="/" onClick={() => setActiveTab("Home")} className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-white w-5 h-5"
-              >
-                <rect x="4" y="17" width="16" height="5" rx="1" />
-                <rect x="7" y="12" width="10" height="5" rx="1" />
-                <rect x="10" y="7" width="4" height="5" rx="1" />
-                <path d="M12 3v4" />
-              </svg>
-            </div>
-            <span className="text-xl font-bold tracking-tight text-slate-800">Build My Cakes</span>
+          <a href="/" onClick={() => setActiveTab("Home")} className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
+            <img src="/main_logo.svg" alt="Build My Cakes" className="h-8" />
           </a>
 
           {/* Desktop Navigation */}
