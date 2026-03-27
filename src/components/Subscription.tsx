@@ -132,18 +132,53 @@ const Subscription = () => {
           <div className="space-y-6">
             {/* No Subscription State */}
             {!subscriptionData.hasPayment ? (
-              <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-                <div className="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CreditCard className="text-slate-400" size={32} />
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-900 mb-2">No Active Subscription</h2>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-slate-300 rounded-full"></div>
+                        <span className="text-sm font-medium text-slate-600">
+                          Free Account
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-slate-600 mb-6">
+                    Upgrade your account to access premium features and unlock your full design potential.
+                  </p>
+
+                  {/* Available Plans */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 border-t border-slate-100 pt-6">
+                    {/* 24-Hour Sprint */}
+                    <div className="border border-slate-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-slate-900 mb-2">The 24-Hour Sprint</h3>
+                      <p className="text-2xl font-bold text-blue-600 mb-4">$2.00</p>
+                      <p className="text-xs text-slate-600 mb-4">One-time purchase • 24 hours access</p>
+                      <button
+                        onClick={() => router.navigate({ to: '/pricing-checkout' })}
+                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
+                      >
+                        Get 24-Hour Pass
+                      </button>
+                    </div>
+
+                    {/* Master Baker */}
+                    <div className="border border-slate-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-slate-900 mb-2">The Master Baker</h3>
+                      <p className="text-2xl font-bold text-green-600 mb-1">$5.00</p>
+                      <p className="text-xs text-slate-600 mb-4">/month • Unlimited access</p>
+                      <button
+                        onClick={() => router.navigate({ to: '/pricing-checkout' })}
+                        className="w-full px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors text-sm"
+                      >
+                        Subscribe Monthly
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <h2 className="text-xl font-semibold text-slate-900 mb-2">No Active Subscription</h2>
-                <p className="text-slate-600 mb-6">You don't have an active subscription yet. Upgrade your account to access premium features.</p>
-                <button
-                  onClick={() => router.navigate({ to: '/pricing-checkout' })}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                >
-                  View Plans
-                </button>
               </div>
             ) : (
               <>
