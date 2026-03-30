@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
-import { ArrowLeft, CreditCard, Calendar, Check, AlertCircle } from "lucide-react";
+import { ArrowLeft, Calendar, Check, AlertCircle } from "lucide-react";
 import Navigation from "./Navigation";
 import Footer from "./Footer";
 import { getSubscriptionDetails } from "../server/stripe.functions";
@@ -17,6 +17,7 @@ const Subscription = () => {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [timeLeft, setTimeLeft] = useState<string>('');
 
   useEffect(() => {
     const fetchSubscription = async () => {
@@ -59,6 +60,46 @@ const Subscription = () => {
 
     fetchSubscription();
   }, [router]);
+
+  // Countdown timer effect for one-time purchases
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      if (!subscriptionData?.subscription?.current_period_end) return;
+
+      const isOneTime = subscriptionData.subscription.stripe_subscription_id?.startsWith('onetime_');
+      if (!isOneTime) return;
+
+      const expirationTime = new Date(subscriptionData.subscription.current_period_end).getTime();
+      const now = new Date().getTime();
+      const difference = expirationTime - now;
+
+      if (difference > 0) {
+        const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((difference / (1000 * 60)) % 60);
+        const seconds = Math.floor((difference / 1000) % 60);
+        setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+      } else {
+        setTimeLeft('Expired');
+      }
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(timer);
+  }, [subscriptionData]);
+
+  const formatDateWithTime = (date: string | Date | null) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+  };
 
   const formatDate = (date: string | Date | null) => {
     if (!date) return 'N/A';
@@ -200,15 +241,27 @@ const Subscription = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-100 pt-6">
                       {/* Current Period / Valid Until */}
                       {subscriptionData.subscription.stripe_subscription_id?.startsWith('onetime_') ? (
-                        <div>
-                          <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Valid Until</h3>
-                          <div className="flex items-center gap-2 text-slate-700">
-                            <Calendar size={16} className="text-slate-400" />
-                            <span className="text-sm font-medium">
-                              {formatDate(subscriptionData.subscription.current_period_end)}
-                            </span>
+                        <>
+                          <div>
+                            <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Valid Until</h3>
+                            <div className="flex items-center gap-2 text-slate-700">
+                              <Calendar size={16} className="text-slate-400" />
+                              <span className="text-sm font-medium">
+                                {formatDateWithTime(subscriptionData.subscription.current_period_end)}
+                              </span>
+                            </div>
                           </div>
-                        </div>
+
+                          {/* Time Left Countdown */}
+                          <div>
+                            <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Time Left</h3>
+                            <div className="flex items-center gap-2 text-slate-700">
+                              <span className="text-sm font-medium">
+                                {timeLeft || '--:--:--'}
+                              </span>
+                            </div>
+                          </div>
+                        </>
                       ) : (
                         <div>
                           <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Current Billing Period</h3>

@@ -1,8 +1,8 @@
 const Footer = () => {
   return (
     <footer className="py-6 border-t border-slate-200">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between mb-4">
           <div>
             <h3 className="font-semibold text-slate-900 mb-2">How It Works</h3>
             <a href="/getting-started" className="block text-sm text-slate-600 hover:text-slate-900">Getting Started</a>
@@ -11,15 +11,11 @@ const Footer = () => {
             <h3 className="font-semibold text-slate-900 mb-2">How To Videos</h3>
             <a href="/tutorials" className="block text-sm text-slate-600 hover:text-slate-900">Tutorials</a>
           </div>
-          <div>
+          <div className="text-right">
             <h3 className="font-semibold text-slate-900 mb-2">Pricing</h3>
             <a href="/pricing-checkout" className="block text-sm text-slate-600 hover:text-slate-900">Plans</a>
           </div>
-          <div>
-            <h3 className="font-semibold text-slate-900 mb-2">Blog</h3>
-            <a href="/blog" className="block text-sm text-slate-600 hover:text-slate-900">Latest</a>
-          </div>
-          <div>
+          <div className="text-right">
             <h3 className="font-semibold text-slate-900 mb-2">Company</h3>
             <a href="/about-us" className="block text-sm text-slate-600 hover:text-slate-900 mb-1">About Us</a>
             <a href="/support" className="block text-sm text-slate-600 hover:text-slate-900 mb-1">Support</a>

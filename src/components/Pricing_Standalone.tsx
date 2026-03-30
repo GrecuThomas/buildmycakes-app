@@ -30,7 +30,7 @@ const PRICING_TIERS: PricingTier[] = [
     name: 'The Hobbyist',
     price: 0,
     priceId: 'price_1234567890', // Get from Stripe Dashboard
-    description: 'Perfect for practicing your designs or planning a one-off family celebration',
+    description: 'Perfect for practicing your designs or planning a one-off family celebration. All the right tools in the right place, at no cost',
     features: [
       '**Full Design Suite**: Access to all tier shapes, sizes, and decoration tools.',
       '**Standard Export**: Save your sketch as a standard-resolution PNG.',
@@ -74,7 +74,6 @@ export const Pricing = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
 
   // Fetch user and subscription status on mount
   useEffect(() => {
@@ -84,8 +83,6 @@ export const Pricing = () => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          setUser(session.user);
-          
           // Fetch subscription details using server function
           const { getSubscriptionDetails } = await import('../server/stripe.functions');
           const response = await getSubscriptionDetails({ data: { authToken: session.access_token } });
@@ -145,6 +142,14 @@ export const Pricing = () => {
 
   const handleBuildNow = async () => {
     await router.navigate({ to: '/builder' });
+  };
+
+  const handleUpgrade = async (priceId: string) => {
+    await handleSubscribe(priceId);
+  };
+
+  const handleManageSubscription = async () => {
+    await router.navigate({ to: '/subscription' });
   };
 
   return (
@@ -208,16 +213,19 @@ export const Pricing = () => {
                   onClick={() => {
                     if (tier.id === 'basic') {
                       handleBuildNow();
-                    } else if (isCurrentPlan) {
-                      router.navigate({ to: '/subscription' });
+                    } else if (isCurrentPlan && tier.id !== 'basic') {
+                      handleManageSubscription();
+                    } else if (currentSubscription && tier.id === 'pro') {
+                      // User has a subscription (likely $2) and clicking on $5, show Upgrade
+                      handleUpgrade(tier.priceId);
                     } else {
                       handleSubscribe(tier.priceId);
                     }
                   }}
-                  disabled={isLoading === tier.priceId || (isCurrentPlan && tier.id !== 'basic')}
+                  disabled={isLoading === tier.priceId}
                   className={`w-full py-3 rounded-xl font-bold transition-all mb-8 flex items-center justify-center gap-2 ${
                     isCurrentPlan && tier.id !== 'basic'
-                      ? 'bg-slate-100 text-slate-900 cursor-default'
+                      ? 'bg-slate-100 text-slate-900 cursor-pointer hover:bg-slate-200'
                       : tier.popular
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:translate-y-[-2px]'
                       : 'bg-slate-100 text-slate-900 hover:bg-slate-200'
@@ -230,6 +238,8 @@ export const Pricing = () => {
                     </>
                   ) : isCurrentPlan && tier.id !== 'basic' ? (
                     'Manage'
+                  ) : currentSubscription && !isCurrentPlan && tier.id === 'pro' ? (
+                    'Upgrade Now'
                   ) : tier.id === 'basic' ? (
                     'Build Now'
                   ) : (

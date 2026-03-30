@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef, FC, SVGProps, ReactNode, MouseEvent } from "react";
+import { useEffect, useState, useMemo, useRef, FC, ReactNode, MouseEvent } from "react";
 import { Circle, Square, Hexagon, Plus, Trash2, ArrowUp, ArrowDown, Move, Download, ArrowLeft, Save, FolderOpen, RotateCcw } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
 import { SaveProjectModal } from "./SaveProjectModal";
 import { ProjectsModal } from "./ProjectsModal";
+import { AdWall } from "./AdWall";
 import { saveProject } from "../server/projects.functions";
 import { getSubscriptionDetails } from "../server/stripe.functions";
+import { useSessionAutoSave, getSessionData, clearSessionData } from "../lib/useSessionStorage";
 
 // --- TYPE DEFINITIONS ---
 interface Tier {
@@ -431,31 +433,68 @@ export default function Page(): ReactNode {
   const [isSavingProject, setIsSavingProject] = useState<boolean>(false);
   const [showResetModal, setShowResetModal] = useState<boolean>(false);
 
-  // Check subscription status
+  // AdWall State for free tier exports
+  const [showAdWall, setShowAdWall] = useState<boolean>(false);
+  const [pendingExport, setPendingExport] = useState<{
+    name: string;
+    date: string;
+    type: "png" | "pdf";
+  } | null>(null);
+
+  // Session Restore State
+  const [showRestoreNotification, setShowRestoreNotification] = useState<boolean>(false);
+  const [isNotificationClosing, setIsNotificationClosing] = useState<boolean>(false);
+
+  // Auto-dismiss notification after 5 seconds
+  useEffect(() => {
+    if (showRestoreNotification) {
+      const timer = setTimeout(() => {
+        setIsNotificationClosing(true);
+        // Wait for animation to complete before removing
+        const removeTimer = setTimeout(() => {
+          setShowRestoreNotification(false);
+          setIsNotificationClosing(false);
+        }, 300);
+        return () => clearTimeout(removeTimer);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showRestoreNotification]);
+
+  // Check subscription status and restore session
   useEffect(() => {
     const checkSubscription = async () => {
       try {
         const { supabase } = await import("../lib/supabase");
         const {
           data: { session },
-          error: sessionError,
         } = await supabase.auth.getSession();
 
         if (!session?.access_token) {
           setHasSubscription(false);
-          return;
+        } else {
+          const response = await getSubscriptionDetails({ data: { authToken: session.access_token } });
+          setHasSubscription(response.hasPayment);
         }
-
-        const response = await getSubscriptionDetails({ data: { authToken: session.access_token } });
-        setHasSubscription(response.hasPayment);
       } catch (error) {
         console.error("Error checking subscription:", error);
         setHasSubscription(false);
       }
     };
 
+    // Restore session data if available
+    const sessionData = getSessionData();
+    if (sessionData && sessionData.tiers.length > 0) {
+      setTiers(sessionData.tiers);
+      setDecorations(sessionData.decorations);
+      setShowRestoreNotification(true);
+    }
+
     checkSubscription();
   }, []);
+
+  // Auto-save session data whenever tiers or decorations change
+  useSessionAutoSave(tiers, decorations, 1000);
 
   // Derived calculations for the Canvas SVG
   const { maxW, totalH, viewBounds, tiersWithY, actualTiersCount } = useMemo(() => {
@@ -653,6 +692,17 @@ export default function Page(): ReactNode {
   };
 
   const performExport = async (name: string, date: string, type: "png" | "pdf"): Promise<void> => {
+    // If user is free tier, show AdWall instead of downloading immediately
+    if (!hasSubscription) {
+      setPendingExport({ name, date, type });
+      setShowAdWall(true);
+    } else {
+      // Premium user gets immediate download
+      await executeDownload(name, date, type);
+    }
+  };
+
+  const executeDownload = async (name: string, date: string, type: "png" | "pdf"): Promise<void> => {
     try {
       // Convert date format from YYYY-MM-DD to DD-MM-YYYY
       const [year, month, day] = date.split("-");
@@ -703,6 +753,19 @@ export default function Page(): ReactNode {
     } catch (err) {
       console.error("Failed to generate export", err);
     }
+  };
+
+  const handleAdWallComplete = async (): Promise<void> => {
+    if (pendingExport) {
+      await executeDownload(pendingExport.name, pendingExport.date, pendingExport.type);
+      setPendingExport(null);
+    }
+    setShowAdWall(false);
+  };
+
+  const handleAdWallCancel = (): void => {
+    setShowAdWall(false);
+    setPendingExport(null);
   };
 
   const handleSaveProject = async (projectName: string): Promise<void> => {
@@ -779,6 +842,7 @@ export default function Page(): ReactNode {
     setShowSaveModal(false);
     setShowProjectsModal(false);
     setShowResetModal(false);
+    clearSessionData();
   };
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>): void => {
@@ -966,6 +1030,39 @@ export default function Page(): ReactNode {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-slate-100 flex flex-col font-sans text-slate-800">
+      {/* Session Restore Notification */}
+      {showRestoreNotification && (
+        <div 
+          className="overflow-hidden transition-all duration-300 ease-in-out"
+          style={{
+            maxHeight: isNotificationClosing ? '0px' : '200px',
+          }}
+        >
+          <div 
+            className="bg-green-50 border-b border-green-200 px-6 py-3 flex items-center justify-between z-20"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+              <p className="text-sm text-green-800">
+                <span className="font-semibold">Session restored!</span> We found your previous design and restored it.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setIsNotificationClosing(true);
+                setTimeout(() => {
+                  setShowRestoreNotification(false);
+                  setIsNotificationClosing(false);
+                }, 300);
+              }}
+              className="text-green-600 hover:text-green-800 text-sm font-medium"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10 shadow-sm shrink-0 h-16">
         <div className="flex items-center gap-6">
@@ -1493,6 +1590,21 @@ export default function Page(): ReactNode {
             </form>
           </div>
         </div>
+      )}
+
+      {/* AdWall for Free Tier */}
+      {pendingExport && (
+        <AdWall
+          isOpen={showAdWall}
+          onComplete={handleAdWallComplete}
+          onCancel={handleAdWallCancel}
+          fileName={`${pendingExport.name}_${
+            (() => {
+              const [year, month, day] = pendingExport.date.split("-");
+              return `${day}-${month}-${year}`;
+            })()
+          }.${pendingExport.type}`}
+        />
       )}
 
       {/* Save Project Modal */}
