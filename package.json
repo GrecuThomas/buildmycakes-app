@@ -14,7 +14,6 @@
     "@tanstack/react-start": "^1.166.1",
     "@tanstack/react-store": "^0.9.1",
     "@tanstack/router-plugin": "^1.164.0",
-    "@tanstack/start": "^1.111.9",
     "@tanstack/store": "^0.9.1",
     "lucide-react": "^0.576.0",
     "react": "^19.2.0",
@@ -35,6 +34,6 @@
     "rimraf": "^6.0.1",
     "tailwindcss": "^4.0.6",
     "typescript": "^5.7.2",
-    "vite": "^7.1.7"
+    "vite": "^7.3.1"
   }
 }

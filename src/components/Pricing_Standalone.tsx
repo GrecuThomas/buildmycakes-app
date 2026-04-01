@@ -34,9 +34,9 @@ const PRICING_TIERS: PricingTier[] = [
     features: [
       '**Full Design Suite**: Access to all tier shapes, sizes, and decoration tools.',
       '**Standard Export**: Save your sketch as a standard-resolution PNG.',
-      '**Ad-Supported**: Helps us keep the lights on while you build.',
+      '**Save & Edit**: Save your designs to your account to edit them later.',
       '**"Draft" Watermark**: A subtle overlay on your canvas and final exports.',
-      '**Ad-Wall on Export**: A short 15-second wait to generate your final file.',
+      '**Ad-Wall on Export**: A short 30-second wait to generate your final file.',
     ],
   },
   {
@@ -50,7 +50,7 @@ const PRICING_TIERS: PricingTier[] = [
       '**24h All-Access Pass**: Every "Pro" feature unlocked for a full day.',
       '**Zero Advertisements**: No distractions while you\'re in the creative zone.',
       '**No Watermarks**: Clean, professional sketches that look great in a portfolio.',
-      '**Professional Exports**: High-resolution PDF or SVG files ready for printing or emailing to clients.',
+      '**Professional Exports**: High-resolution PNG or PDF files ready for printing or emailing to clients.',
       '**Instant Downloads**: Skip the export timer and get your files immediately.',
     ],
   },
@@ -63,8 +63,7 @@ const PRICING_TIERS: PricingTier[] = [
     features: [
       '**Unlimited Pro Design**: Everything in the 24h Pass, but permanent.',
       '**Priority Support**: Have a feature request? You\'re at the top of our list.',
-      '**Save & Edit**: (Future Feature) Save your designs to your account to edit them later.',
-      '**Client Branding**: (Future Feature) Add your own bakery logo to the final export instead of ours.',
+      '**Client Branding**: Add your own bakery logo to the final export instead of ours.',
       '**Cancel Anytime**: No long-term contracts; stay as long as you\'re baking!',
     ],
   },
@@ -273,7 +272,7 @@ export const Pricing = () => {
               Can I change my plan later?
             </summary>
             <p className="mt-4 text-slate-700">
-              Yes! You can upgrade or downgrade your plan at any time. Changes take effect on your next billing cycle.
+              Absolutely! You can upgrade or downgrade your plan at any time. Changes take effect on your next billing cycle.
             </p>
           </details>
 
@@ -282,7 +281,7 @@ export const Pricing = () => {
               Is there a free trial?
             </summary>
             <p className="mt-4 text-slate-700">
-              Yes, we offer free functionality if you register with a free account. You can use the builder and save up to 2 designs with the free plan. No credit card is required to get started!
+              Yes, you can use our site whether you subscribe or not. The "Hobbyist" tier is completely free and gives you access to all the core design features, with some limitations on exports and branding. You can upgrade to a paid plan anytime for additional perks!
             </p>
           </details>
 

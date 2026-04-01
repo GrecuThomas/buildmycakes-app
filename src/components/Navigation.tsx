@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Home, Tag, Hammer, LogIn, Menu, X, User, LogOut, CreditCard } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
+import { clearSessionData } from "../lib/useSessionStorage";
 
 type IProps = {
   tab: string;
@@ -65,6 +66,11 @@ const Navigation = (props: IProps) => {
     try {
       setIsLoading(true);
       setIsDropdownOpen(false);
+
+      // Remove scoped builder draft for this account before ending the session.
+      if (user?.id) {
+        clearSessionData(user.id);
+      }
 
       // Import Supabase dynamically on the client side
       const { supabase } = await import("../lib/supabase");

@@ -63,8 +63,8 @@ interface ModalState {
   mode: "add" | "edit";
   tierId: string | null;
   shape: string;
-  width: number;
-  height: number;
+  width: number | "";
+  height: number | "";
 }
 
 interface DecorInteractState {
@@ -82,6 +82,46 @@ interface SVGPoint {
 
 // --- HELPER FUNCTIONS ---
 const generateId = () => Math.random().toString(36).substr(2, 9);
+
+const parseDimensionInput = (value: string): number | "" => {
+  if (value === "") return "";
+  return Number(value);
+};
+
+const fetchAsDataUrl = async (assetPath: string): Promise<string | null> => {
+  try {
+    const response = await fetch(assetPath);
+    if (!response.ok) return null;
+
+    const blob = await response.blob();
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Failed to inline export image:", assetPath, error);
+    return null;
+  }
+};
+
+const inlineSvgImageAssets = async (svg: SVGSVGElement): Promise<void> => {
+  const imageNodes = Array.from(svg.querySelectorAll("image"));
+
+  await Promise.all(
+    imageNodes.map(async (node) => {
+      const href = node.getAttribute("href") || node.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+      if (!href || href.startsWith("data:")) return;
+
+      const dataUrl = await fetchAsDataUrl(href);
+      if (!dataUrl) return;
+
+      node.setAttribute("href", dataUrl);
+      node.setAttributeNS("http://www.w3.org/1999/xlink", "href", dataUrl);
+    }),
+  );
+};
 
 // --- SVG DECORATION ASSETS FROM PUBLIC FOLDER ---
 const decorationsList: DecorationListItem[] = [
@@ -402,6 +442,7 @@ export default function Page(): ReactNode {
   const [exportModalDate, setExportModalDate] = useState<string>("");
   const [exportType, setExportType] = useState<"png" | "pdf" | null>(null);
   const [showDimensions, setShowDimensions] = useState<boolean>(true);
+  const [showDecorations, setShowDecorations] = useState<boolean>(true);
   const [hasSubscription, setHasSubscription] = useState<boolean>(false);
   const panStartRef = useRef<SVGPoint>({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
@@ -432,6 +473,7 @@ export default function Page(): ReactNode {
   const [showProjectsModal, setShowProjectsModal] = useState<boolean>(false);
   const [isSavingProject, setIsSavingProject] = useState<boolean>(false);
   const [showResetModal, setShowResetModal] = useState<boolean>(false);
+  const [sessionScopeId, setSessionScopeId] = useState<string>("guest");
 
   // AdWall State for free tier exports
   const [showAdWall, setShowAdWall] = useState<boolean>(false);
@@ -463,12 +505,23 @@ export default function Page(): ReactNode {
 
   // Check subscription status and restore session
   useEffect(() => {
-    const checkSubscription = async () => {
+    const initializeBuilderState = async () => {
       try {
         const { supabase } = await import("../lib/supabase");
         const {
           data: { session },
         } = await supabase.auth.getSession();
+
+        const scopeId = session?.user?.id || "guest";
+        setSessionScopeId(scopeId);
+
+        // Restore session data for the active user scope if available
+        const sessionData = getSessionData(scopeId);
+        if (sessionData && sessionData.tiers.length > 0) {
+          setTiers(sessionData.tiers);
+          setDecorations(sessionData.decorations);
+          setShowRestoreNotification(true);
+        }
 
         if (!session?.access_token) {
           setHasSubscription(false);
@@ -482,19 +535,11 @@ export default function Page(): ReactNode {
       }
     };
 
-    // Restore session data if available
-    const sessionData = getSessionData();
-    if (sessionData && sessionData.tiers.length > 0) {
-      setTiers(sessionData.tiers);
-      setDecorations(sessionData.decorations);
-      setShowRestoreNotification(true);
-    }
-
-    checkSubscription();
+    initializeBuilderState();
   }, []);
 
   // Auto-save session data whenever tiers or decorations change
-  useSessionAutoSave(tiers, decorations, 1000);
+  useSessionAutoSave(tiers, decorations, 1000, sessionScopeId);
 
   // Derived calculations for the Canvas SVG
   const { maxW, totalH, viewBounds, tiersWithY, actualTiersCount } = useMemo(() => {
@@ -544,54 +589,62 @@ export default function Page(): ReactNode {
     projectDate?: string,
   ): Promise<{ canvas: HTMLCanvasElement; exportW: number; exportH: number } | null> => {
     return new Promise((resolve) => {
-      const svgElement = svgRef.current;
-      if (!svgElement) return resolve(null);
+      const exportSnapshot = async () => {
+        const svgElement = svgRef.current;
+        if (!svgElement) return resolve(null);
 
-      const viewBox = svgElement.viewBox.baseVal;
+        const viewBox = svgElement.viewBox.baseVal;
 
-      // 1. Force strict Portrait A4 dimensions at 300 DPI
-      const exportW = 2480;
-      const exportH = 3508;
+        // 1. Force strict Portrait A4 dimensions at 300 DPI
+        const exportW = 2480;
+        const exportH = 3508;
 
-      // 2. Enforce padding. Create a larger top margin to accommodate the text header!
-      const marginPx = 100;
-      const marginTopPx = 350;
-      const drawW = exportW - marginPx * 2;
-      const drawH = exportH - (marginTopPx + marginPx);
+        // 2. Enforce padding. Create a larger top margin to accommodate the text header!
+        const marginPx = 100;
+        const marginTopPx = 350;
+        const drawW = exportW - marginPx * 2;
+        const drawH = exportH - (marginTopPx + marginPx);
 
-      // 3. Calculate exact scale to maximize the sketch into the safe printable area
-      const scale = Math.min(drawW / viewBox.width, drawH / viewBox.height);
-      const scaledW = viewBox.width * scale;
-      const scaledH = viewBox.height * scale;
+        // 3. Calculate exact scale to maximize the sketch into the safe printable area
+        const scale = Math.min(drawW / viewBox.width, drawH / viewBox.height);
+        const scaledW = viewBox.width * scale;
+        const scaledH = viewBox.height * scale;
 
-      // Clone the SVG so we don't mess up the live canvas
-      const clone = svgElement.cloneNode(true) as SVGSVGElement;
+        // Clone the SVG so we don't mess up the live canvas
+        const clone = svgElement.cloneNode(true) as SVGSVGElement;
 
-      // Strip out any React inline styles for pan/zoom
-      clone.style.transform = "";
-      clone.style.filter = "";
-      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        // Strip out any React inline styles for pan/zoom
+        clone.style.transform = "";
+        clone.style.filter = "";
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
 
-      // Remove transform UI elements from the export clone
-      clone.querySelectorAll(".decor-ui").forEach((el: Element) => el.remove());
+        // Remove transform UI elements from the export clone
+        clone.querySelectorAll(".decor-ui").forEach((el: Element) => el.remove());
 
-      // Force the SVG to render exactly at the high-res scaled pixel size
-      // This guarantees vector-crisp lines instead of a blurry upscaled image
-      clone.setAttribute("width", scaledW.toString());
-      clone.setAttribute("height", scaledH.toString());
+        // Force the SVG to render exactly at the high-res scaled pixel size
+        // This guarantees vector-crisp lines instead of a blurry upscaled image
+        clone.setAttribute("width", scaledW.toString());
+        clone.setAttribute("height", scaledH.toString());
 
-      const svgData = new XMLSerializer().serializeToString(clone);
-      const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
+        // Inline decoration assets so exported SVG always includes image nodes.
+        await inlineSvgImageAssets(clone);
 
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = exportW;
-        canvas.height = exportH;
-        const ctx = canvas.getContext("2d");
+        const svgData = new XMLSerializer().serializeToString(clone);
+        const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
 
-        if (!ctx) return resolve(null);
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = exportW;
+          canvas.height = exportH;
+          const ctx = canvas.getContext("2d");
+
+          if (!ctx) {
+            URL.revokeObjectURL(url);
+            return resolve(null);
+          }
 
         // Fill blueprint background (grid lines removed for export)
         ctx.fillStyle = "#f8fafc";
@@ -682,7 +735,15 @@ export default function Page(): ReactNode {
           resolve({ canvas, exportW, exportH });
         }
       };
-      img.src = url;
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          resolve(null);
+        };
+
+        img.src = url;
+      };
+
+      void exportSnapshot();
     });
   };
 
@@ -842,7 +903,7 @@ export default function Page(): ReactNode {
     setShowSaveModal(false);
     setShowProjectsModal(false);
     setShowResetModal(false);
-    clearSessionData();
+    clearSessionData(sessionScopeId);
   };
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>): void => {
@@ -995,10 +1056,17 @@ export default function Page(): ReactNode {
 
   const saveTier = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
+    const width = Number(modal.width);
+    const height = Number(modal.height);
+
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      return;
+    }
+
     if (modal.mode === "add") {
-      setTiers([...tiers, { id: generateId(), shape: modal.shape as Tier["shape"], width: Number(modal.width), height: Number(modal.height) }]);
+      setTiers([...tiers, { id: generateId(), shape: modal.shape as Tier["shape"], width, height }]);
     } else {
-      setTiers(tiers.map((t) => (t.id === modal.tierId ? { ...t, width: Number(modal.width), height: Number(modal.height) } : t)));
+      setTiers(tiers.map((t) => (t.id === modal.tierId ? { ...t, width, height } : t)));
     }
     setModal({ ...modal, isOpen: false });
   };
@@ -1215,7 +1283,7 @@ export default function Page(): ReactNode {
             </div>
           )}
 
-          {/* Zoom controls and dimensions toggle */}
+          {/* Zoom controls and visibility toggles */}
           <div className="absolute bottom-6 left-6 z-20 flex gap-2">
             <div className="bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm text-xs font-mono text-slate-500 pointer-events-none">
               Zoom: {Math.round(zoom * 100)}% (Scroll to zoom)
@@ -1228,6 +1296,20 @@ export default function Page(): ReactNode {
               title={showDimensions ? "Hide dimensions" : "Show dimensions"}
             >
               {showDimensions ? "Dimensions: On" : "Dimensions: Off"}
+            </button>
+            <button
+              onClick={() => {
+                setShowDecorations(!showDecorations);
+                if (showDecorations) {
+                  setActiveDecorId(null);
+                }
+              }}
+              className={`bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg border shadow-sm text-xs font-semibold transition-colors ${
+                showDecorations ? "border-blue-300 text-blue-600 hover:bg-blue-50" : "border-slate-200 text-slate-500 hover:bg-slate-50"
+              }`}
+              title={showDecorations ? "Hide decorations" : "Show decorations"}
+            >
+              {showDecorations ? "Decorations: On" : "Decorations: Off"}
             </button>
           </div>
 
@@ -1299,17 +1381,18 @@ export default function Page(): ReactNode {
                 ))}
 
                 {/* Render Decorations (Always on top of tiers) */}
-                {decorations.map((decor) => (
-                  <DecorationItem
-                    key={decor.id}
-                    decor={decor}
-                    isActive={activeDecorId === decor.id}
-                    onSelect={setActiveDecorId}
-                    onInteract={handleDecorInteract}
-                    onDelete={handleDecorDelete}
-                    onMirror={handleDecorMirror}
-                  />
-                ))}
+                {showDecorations &&
+                  decorations.map((decor) => (
+                    <DecorationItem
+                      key={decor.id}
+                      decor={decor}
+                      isActive={activeDecorId === decor.id}
+                      onSelect={setActiveDecorId}
+                      onInteract={handleDecorInteract}
+                      onDelete={handleDecorDelete}
+                      onMirror={handleDecorMirror}
+                    />
+                  ))}
               </svg>
             </div>
           )}
@@ -1420,7 +1503,7 @@ export default function Page(): ReactNode {
                     max="200"
                     required
                     value={modal.width}
-                    onChange={(e) => setModal({ ...modal, width: Number(e.target.value) })}
+                    onChange={(e) => setModal({ ...modal, width: parseDimensionInput(e.target.value) })}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all mb-3"
                     autoFocus
                   />
@@ -1428,7 +1511,7 @@ export default function Page(): ReactNode {
                     type="range"
                     min="1"
                     max="200"
-                    value={modal.width}
+                    value={modal.width === "" ? 1 : modal.width}
                     onChange={(e) => setModal({ ...modal, width: Number(e.target.value) })}
                     className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                   />
@@ -1442,14 +1525,14 @@ export default function Page(): ReactNode {
                     max="100"
                     required
                     value={modal.height}
-                    onChange={(e) => setModal({ ...modal, height: Number(e.target.value) })}
+                    onChange={(e) => setModal({ ...modal, height: parseDimensionInput(e.target.value) })}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all mb-3"
                   />
                   <input
                     type="range"
                     min="1"
                     max="100"
-                    value={modal.height}
+                    value={modal.height === "" ? 1 : modal.height}
                     onChange={(e) => setModal({ ...modal, height: Number(e.target.value) })}
                     className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                   />
