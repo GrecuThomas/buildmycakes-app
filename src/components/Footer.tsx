@@ -18,8 +18,7 @@ const Footer = () => {
           <div className="text-right">
             <h3 className="font-semibold text-slate-900 mb-2">Company</h3>
             <a href="/about-us" className="block text-sm text-slate-600 hover:text-slate-900 mb-1">About Us</a>
-            <a href="/support" className="block text-sm text-slate-600 hover:text-slate-900 mb-1">Support</a>
-            <a href="/contact-us" className="block text-sm text-slate-600 hover:text-slate-900 mb-1">Contact Us</a>
+            <a href="/support" className="block text-sm text-slate-600 hover:text-slate-900 mb-1">Support/Contact Us</a>
           </div>
         </div>
         <div className="border-t border-slate-200 pt-4 flex flex-col md:flex-row justify-between items-center">
