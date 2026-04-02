@@ -42,6 +42,7 @@ interface DecorationItemProps {
   onInteract: (e: MouseEvent<SVGGElement>, mode: string, decor: Decoration) => void;
   onDelete: (id: string) => void;
   onMirror: (id: string) => void;
+  onBringToFront: (id: string) => void;
 }
 
 interface TierShapeProps {
@@ -88,6 +89,17 @@ const parseDimensionInput = (value: string): number | "" => {
   return Number(value);
 };
 
+const sortDecorationsByNumericName = (a: DecorationListItem, b: DecorationListItem): number => {
+  const aNum = Number(a.name.match(/\d+/)?.[0] ?? 0);
+  const bNum = Number(b.name.match(/\d+/)?.[0] ?? 0);
+  if (aNum !== bNum) return aNum - bNum;
+  return a.name.localeCompare(b.name);
+};
+
+const getAutoTierHeight = (shape: string, width: number): number => {
+  return shape.includes("platform") ? 2 : Math.floor(width / 2);
+};
+
 const fetchAsDataUrl = async (assetPath: string): Promise<string | null> => {
   try {
     const response = await fetch(assetPath);
@@ -125,22 +137,40 @@ const inlineSvgImageAssets = async (svg: SVGSVGElement): Promise<void> => {
 
 // --- SVG DECORATION ASSETS FROM PUBLIC FOLDER ---
 const decorationsList: DecorationListItem[] = [
-  { id: "f1", name: "Flower 1", svgPath: "/flower1.svg", type: "flower" },
-  { id: "f2", name: "Flower 2", svgPath: "/flower2.svg", type: "flower" },
-  { id: "f3", name: "Flower 3", svgPath: "/flower3.svg", type: "flower" },
-  { id: "f4", name: "Flower 4", svgPath: "/flower4.svg", type: "flower" },
-  { id: "f5", name: "Flower 5", svgPath: "/flower5.svg", type: "flower" },
-  { id: "l1", name: "Leaf 1", svgPath: "/leaf1.svg", type: "leaf" },
-  { id: "l2", name: "Leaf 2", svgPath: "/leaf2.svg", type: "leaf" },
-  { id: "l3", name: "Leaf 3", svgPath: "/leaf3.svg", type: "leaf" },
-  { id: "l4", name: "Leaf 4", svgPath: "/leaf4.svg", type: "leaf" },
-  { id: "l5", name: "Leaf 5", svgPath: "/leaf5.svg", type: "leaf" },
-  { id: "l6", name: "Leaf 6", svgPath: "/leaf6.svg", type: "leaf" },
-  { id: "l7", name: "Leaf 7", svgPath: "/leaf7.svg", type: "leaf" },
+  { id: "f1", name: "Flower 1", svgPath: "/flowers/flower1.svg", type: "flower" },
+  { id: "f2", name: "Flower 2", svgPath: "/flowers/flower2.svg", type: "flower" },
+  { id: "f3", name: "Flower 3", svgPath: "/flowers/flower3.svg", type: "flower" },
+  { id: "f4", name: "Flower 4", svgPath: "/flowers/flower4.svg", type: "flower" },
+  { id: "f5", name: "Flower 5", svgPath: "/flowers/flower5.svg", type: "flower" },
+  { id: "f6", name: "Flower 6", svgPath: "/flowers/flower6.svg", type: "flower" },
+  { id: "f7", name: "Flower 7", svgPath: "/flowers/flower7.svg", type: "flower" },
+  { id: "f8", name: "Flower 8", svgPath: "/flowers/flower8.svg", type: "flower" },
+  { id: "f9", name: "Flower 9", svgPath: "/flowers/flower9.svg", type: "flower" },
+  { id: "f10", name: "Flower 10", svgPath: "/flowers/flower10.svg", type: "flower" },
+  { id: "f11", name: "Flower 11", svgPath: "/flowers/flower11.svg", type: "flower" },
+  { id: "f12", name: "Flower 12", svgPath: "/flowers/flower12.svg", type: "flower" },
+  { id: "f13", name: "Flower 13", svgPath: "/flowers/flower13.svg", type: "flower" },
+  { id: "f14", name: "Flower 14", svgPath: "/flowers/flower14.svg", type: "flower" },
+  { id: "f15", name: "Flower 15", svgPath: "/flowers/flower15.svg", type: "flower" },
+  { id: "f16", name: "Flower 16", svgPath: "/flowers/flower16.svg", type: "flower" },
+  { id: "l1", name: "Leaf 1", svgPath: "/leaves/leaf1.svg", type: "leaf" },
+  { id: "l2", name: "Leaf 2", svgPath: "/leaves/leaf2.svg", type: "leaf" },
+  { id: "l3", name: "Leaf 3", svgPath: "/leaves/leaf3.svg", type: "leaf" },
+  { id: "l4", name: "Leaf 4", svgPath: "/leaves/leaf4.svg", type: "leaf" },
+  { id: "l5", name: "Leaf 5", svgPath: "/leaves/leaf5.svg", type: "leaf" },
+  { id: "l6", name: "Leaf 6", svgPath: "/leaves/leaf6.svg", type: "leaf" },
+  { id: "l7", name: "Leaf 7", svgPath: "/leaves/leaf7.svg", type: "leaf" },
+  { id: "l8", name: "Leaf 8", svgPath: "/leaves/leaf8.svg", type: "leaf" },
+  { id: "l9", name: "Leaf 9", svgPath: "/leaves/leaf9.svg", type: "leaf" },
+  { id: "l10", name: "Leaf 10", svgPath: "/leaves/leaf10.svg", type: "leaf" },
+  { id: "l11", name: "Leaf 11", svgPath: "/leaves/leaf11.svg", type: "leaf" },
+  { id: "l12", name: "Leaf 12", svgPath: "/leaves/leaf12.svg", type: "leaf" },
+  { id: "l13", name: "Leaf 13", svgPath: "/leaves/leaf13.svg", type: "leaf" },
+  { id: "l14", name: "Leaf 14", svgPath: "/leaves/leaf14.svg", type: "leaf" },
 ];
 
 // --- DECORATION RENDERER & TRANSFORM UI ---
-const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, onInteract, onDelete, onMirror }) => {
+const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, onInteract, onDelete, onMirror, onBringToFront }) => {
   const decorInfo = decorationsList.find((d) => d.id === decor.iconId);
   if (!decorInfo) return null;
 
@@ -166,6 +196,41 @@ const DecorationItem: FC<DecorationItemProps> = ({ decor, isActive, onSelect, on
         <g className="decor-ui">
           {/* Bounding Box */}
           <rect x="-16" y="-16" width="32" height="32" fill="none" stroke="#3b82f6" strokeWidth={0.4 / decor.scale} strokeDasharray="2,2" />
+
+          {/* Bring To Front Handle (Top Left) */}
+          <g
+            transform="translate(-16, -16)"
+            className="cursor-pointer"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              onBringToFront(decor.id);
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onBringToFront(decor.id);
+            }}
+          >
+            <circle cx="0" cy="0" r={1.6 / decor.scale} fill="#8b5cf6" />
+            <line x1="0" y1={0.8 / decor.scale} x2="0" y2={-0.8 / decor.scale} stroke="white" strokeWidth={0.4 / decor.scale} strokeLinecap="round" />
+            <line
+              x1={-0.7 / decor.scale}
+              y1={-0.1 / decor.scale}
+              x2="0"
+              y2={-0.8 / decor.scale}
+              stroke="white"
+              strokeWidth={0.4 / decor.scale}
+              strokeLinecap="round"
+            />
+            <line
+              x1={0.7 / decor.scale}
+              y1={-0.1 / decor.scale}
+              x2="0"
+              y2={-0.8 / decor.scale}
+              stroke="white"
+              strokeWidth={0.4 / decor.scale}
+              strokeLinecap="round"
+            />
+          </g>
 
           {/* Delete Handle (Top Right) */}
           <g
@@ -1030,16 +1095,26 @@ export default function Page(): ReactNode {
     setDecorations((prev) => prev.map((d) => (d.id === id ? { ...d, mirrorFlip: !d.mirrorFlip } : d)));
   };
 
+  const handleDecorBringToFront = (id: string): void => {
+    setDecorations((prev) => {
+      const targetDecor = prev.find((d) => d.id === id);
+      if (!targetDecor) return prev;
+
+      return [...prev.filter((d) => d.id !== id), targetDecor];
+    });
+    setActiveDecorId(id);
+  };
+
   const openModal = (mode: "add" | "edit", shapeType?: string, existingTier?: Tier): void => {
     if (mode === "add" && shapeType) {
       // Default sizing based on shape to give good starting points
       let defW = 30;
-      let defH = shapeType.includes("platform") ? 2 : defW / 2;
+      let defH = getAutoTierHeight(shapeType, defW);
       if (tiers.length > 0) {
         // If adding a new tier, suggest slightly smaller than the top tier
         const topTier = tiers[tiers.length - 1];
         defW = shapeType.includes("platform") ? topTier.width + 5 : Math.max(10, topTier.width - 10);
-        defH = shapeType.includes("platform") ? 2 : defW / 2;
+        defH = getAutoTierHeight(shapeType, defW);
       }
       setModal({ isOpen: true, mode: "add", tierId: null, shape: shapeType, width: defW, height: defH });
     } else if (mode === "edit" && existingTier) {
@@ -1193,6 +1268,7 @@ export default function Page(): ReactNode {
               <div className="grid grid-cols-2 gap-4">
                 {decorationsList
                   .filter((d) => d.type === "flower")
+                  .sort(sortDecorationsByNumericName)
                   .map((decor) => (
                     <div
                       key={decor.id}
@@ -1215,6 +1291,7 @@ export default function Page(): ReactNode {
               <div className="grid grid-cols-2 gap-4">
                 {decorationsList
                   .filter((d) => d.type === "leaf")
+                  .sort(sortDecorationsByNumericName)
                   .map((decor) => (
                     <div
                       key={decor.id}
@@ -1391,6 +1468,7 @@ export default function Page(): ReactNode {
                       onInteract={handleDecorInteract}
                       onDelete={handleDecorDelete}
                       onMirror={handleDecorMirror}
+                      onBringToFront={handleDecorBringToFront}
                     />
                   ))}
               </svg>
