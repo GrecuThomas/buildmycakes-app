@@ -1,6 +1,7 @@
 import Navigation from "./Navigation";
 import Footer from "./Footer";
 
+
 const GettingStarted = () => {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
