@@ -85,8 +85,9 @@ const SignUp = () => {
       setError('');
       console.log('Registration successful:', result.message);
       
-      // Redirect to login page after successful registration
-      await router.navigate({ to: '/log-in' });
+      // Redirect to activation instructions page after successful registration
+      const encodedEmail = encodeURIComponent(formData.email);
+      window.location.assign(`/check-email?email=${encodedEmail}`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Registration failed. Please try again.';
       setError(errorMessage);

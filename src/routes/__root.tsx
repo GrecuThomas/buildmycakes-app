@@ -20,6 +20,19 @@ export const Route = createRootRoute({
         title: 'Cake Tier Designer',
       },
     ],
+    links: [
+      {
+        rel: 'icon',
+        href: '/favicon.ico',
+        type: 'image/x-icon',
+        sizes: 'any',
+      },
+      {
+        rel: 'shortcut icon',
+        href: '/favicon.ico',
+        type: 'image/x-icon',
+      },
+    ],
   }),
   shellComponent: RootDocument,
   notFoundComponent: NotFound,

@@ -20,12 +20,14 @@ import { Route as PricingCheckoutRouteImport } from './routes/pricing-checkout'
 import { Route as LogInRouteImport } from './routes/log-in'
 import { Route as GettingStartedRouteImport } from './routes/getting-started'
 import { Route as ContactUsRouteImport } from './routes/contact-us'
+import { Route as CheckEmailRouteImport } from './routes/check-email'
 import { Route as BuilderRouteImport } from './routes/builder'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutUsRouteImport } from './routes/about-us'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSubscriptionRouteImport } from './routes/api/subscription'
+import { Route as ApiReconcileCheckoutRouteImport } from './routes/api/reconcile-checkout'
 import { Route as ApiPortalSessionRouteImport } from './routes/api/portal-session'
 import { Route as ApiCheckoutRouteImport } from './routes/api/checkout'
 import { Route as ApiCancelSubscriptionRouteImport } from './routes/api/cancel-subscription'
@@ -87,6 +89,11 @@ const ContactUsRoute = ContactUsRouteImport.update({
   path: '/contact-us',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CheckEmailRoute = CheckEmailRouteImport.update({
+  id: '/check-email',
+  path: '/check-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BuilderRoute = BuilderRouteImport.update({
   id: '/builder',
   path: '/builder',
@@ -115,6 +122,11 @@ const IndexRoute = IndexRouteImport.update({
 const ApiSubscriptionRoute = ApiSubscriptionRouteImport.update({
   id: '/api/subscription',
   path: '/api/subscription',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiReconcileCheckoutRoute = ApiReconcileCheckoutRouteImport.update({
+  id: '/api/reconcile-checkout',
+  path: '/api/reconcile-checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPortalSessionRoute = ApiPortalSessionRouteImport.update({
@@ -149,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AccountRouteWithChildren
   '/blog': typeof BlogRoute
   '/builder': typeof BuilderRoute
+  '/check-email': typeof CheckEmailRoute
   '/contact-us': typeof ContactUsRoute
   '/getting-started': typeof GettingStartedRoute
   '/log-in': typeof LogInRoute
@@ -164,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/api/cancel-subscription': typeof ApiCancelSubscriptionRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/portal-session': typeof ApiPortalSessionRoute
+  '/api/reconcile-checkout': typeof ApiReconcileCheckoutRoute
   '/api/subscription': typeof ApiSubscriptionRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
@@ -173,6 +187,7 @@ export interface FileRoutesByTo {
   '/account': typeof AccountRouteWithChildren
   '/blog': typeof BlogRoute
   '/builder': typeof BuilderRoute
+  '/check-email': typeof CheckEmailRoute
   '/contact-us': typeof ContactUsRoute
   '/getting-started': typeof GettingStartedRoute
   '/log-in': typeof LogInRoute
@@ -188,6 +203,7 @@ export interface FileRoutesByTo {
   '/api/cancel-subscription': typeof ApiCancelSubscriptionRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/portal-session': typeof ApiPortalSessionRoute
+  '/api/reconcile-checkout': typeof ApiReconcileCheckoutRoute
   '/api/subscription': typeof ApiSubscriptionRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
@@ -198,6 +214,7 @@ export interface FileRoutesById {
   '/account': typeof AccountRouteWithChildren
   '/blog': typeof BlogRoute
   '/builder': typeof BuilderRoute
+  '/check-email': typeof CheckEmailRoute
   '/contact-us': typeof ContactUsRoute
   '/getting-started': typeof GettingStartedRoute
   '/log-in': typeof LogInRoute
@@ -213,6 +230,7 @@ export interface FileRoutesById {
   '/api/cancel-subscription': typeof ApiCancelSubscriptionRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/portal-session': typeof ApiPortalSessionRoute
+  '/api/reconcile-checkout': typeof ApiReconcileCheckoutRoute
   '/api/subscription': typeof ApiSubscriptionRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
@@ -224,6 +242,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/blog'
     | '/builder'
+    | '/check-email'
     | '/contact-us'
     | '/getting-started'
     | '/log-in'
@@ -239,6 +258,7 @@ export interface FileRouteTypes {
     | '/api/cancel-subscription'
     | '/api/checkout'
     | '/api/portal-session'
+    | '/api/reconcile-checkout'
     | '/api/subscription'
     | '/api/webhooks/stripe'
   fileRoutesByTo: FileRoutesByTo
@@ -248,6 +268,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/blog'
     | '/builder'
+    | '/check-email'
     | '/contact-us'
     | '/getting-started'
     | '/log-in'
@@ -263,6 +284,7 @@ export interface FileRouteTypes {
     | '/api/cancel-subscription'
     | '/api/checkout'
     | '/api/portal-session'
+    | '/api/reconcile-checkout'
     | '/api/subscription'
     | '/api/webhooks/stripe'
   id:
@@ -272,6 +294,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/blog'
     | '/builder'
+    | '/check-email'
     | '/contact-us'
     | '/getting-started'
     | '/log-in'
@@ -287,6 +310,7 @@ export interface FileRouteTypes {
     | '/api/cancel-subscription'
     | '/api/checkout'
     | '/api/portal-session'
+    | '/api/reconcile-checkout'
     | '/api/subscription'
     | '/api/webhooks/stripe'
   fileRoutesById: FileRoutesById
@@ -297,6 +321,7 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRouteWithChildren
   BlogRoute: typeof BlogRoute
   BuilderRoute: typeof BuilderRoute
+  CheckEmailRoute: typeof CheckEmailRoute
   ContactUsRoute: typeof ContactUsRoute
   GettingStartedRoute: typeof GettingStartedRoute
   LogInRoute: typeof LogInRoute
@@ -311,6 +336,7 @@ export interface RootRouteChildren {
   ApiCancelSubscriptionRoute: typeof ApiCancelSubscriptionRoute
   ApiCheckoutRoute: typeof ApiCheckoutRoute
   ApiPortalSessionRoute: typeof ApiPortalSessionRoute
+  ApiReconcileCheckoutRoute: typeof ApiReconcileCheckoutRoute
   ApiSubscriptionRoute: typeof ApiSubscriptionRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
 }
@@ -394,6 +420,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactUsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/check-email': {
+      id: '/check-email'
+      path: '/check-email'
+      fullPath: '/check-email'
+      preLoaderRoute: typeof CheckEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/builder': {
       id: '/builder'
       path: '/builder'
@@ -434,6 +467,13 @@ declare module '@tanstack/react-router' {
       path: '/api/subscription'
       fullPath: '/api/subscription'
       preLoaderRoute: typeof ApiSubscriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/reconcile-checkout': {
+      id: '/api/reconcile-checkout'
+      path: '/api/reconcile-checkout'
+      fullPath: '/api/reconcile-checkout'
+      preLoaderRoute: typeof ApiReconcileCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/portal-session': {
@@ -491,6 +531,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRoute: AccountRouteWithChildren,
   BlogRoute: BlogRoute,
   BuilderRoute: BuilderRoute,
+  CheckEmailRoute: CheckEmailRoute,
   ContactUsRoute: ContactUsRoute,
   GettingStartedRoute: GettingStartedRoute,
   LogInRoute: LogInRoute,
@@ -505,6 +546,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCancelSubscriptionRoute: ApiCancelSubscriptionRoute,
   ApiCheckoutRoute: ApiCheckoutRoute,
   ApiPortalSessionRoute: ApiPortalSessionRoute,
+  ApiReconcileCheckoutRoute: ApiReconcileCheckoutRoute,
   ApiSubscriptionRoute: ApiSubscriptionRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
 }

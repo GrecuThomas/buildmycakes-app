@@ -1,10 +1,25 @@
 import { createFileRoute } from '@tanstack/react-router';
 import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
 const STRIPE_RETURN_URL = process.env.VITE_SITE_URL || 'http://localhost:3000';
+
+function getAdminSupabaseClient() {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    const missing = [];
+    if (!supabaseUrl) missing.push('VITE_SUPABASE_URL');
+    if (!supabaseServiceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+    throw new Error(`Missing Supabase environment variables: ${missing.join(', ')}`);
+  }
+
+  return createClient(supabaseUrl, supabaseServiceRoleKey);
+}
 
 export const Route = createFileRoute('/api/portal-session')({
   component: () => null,
@@ -32,24 +47,48 @@ export const Route = createFileRoute('/api/portal-session')({
             });
           }
 
-          // Get customer
-          const { data: customer } = await supabase
+          // Get or create Stripe customer using admin client (bypasses RLS)
+          const adminClient = getAdminSupabaseClient();
+
+          const { data: existingCustomers, error: customerQueryError } = await adminClient
             .from('customers')
             .select('stripe_customer_id')
             .eq('user_id', user.id)
-            .single();
+            .limit(1);
 
-          if (!customer?.stripe_customer_id) {
-            return new Response(JSON.stringify({ error: 'No Stripe customer found' }), {
-              status: 400,
-              headers: { 'Content-Type': 'application/json' },
+          if (customerQueryError) {
+            throw customerQueryError;
+          }
+
+          let customerId = existingCustomers?.[0]?.stripe_customer_id;
+
+          if (!customerId) {
+            const newCustomer = await stripe.customers.create({
+              email: user.email ?? undefined,
+              metadata: {
+                userId: user.id,
+              },
             });
+
+            customerId = newCustomer.id;
+
+            const { error: customerInsertError } = await adminClient
+              .from('customers')
+              .insert({
+                user_id: user.id,
+                stripe_customer_id: customerId,
+                email: user.email ?? null,
+              });
+
+            if (customerInsertError) {
+              throw customerInsertError;
+            }
           }
 
           // Create portal session
           const session = await stripe.billingPortal.sessions.create({
-            customer: customer.stripe_customer_id,
-            return_url: `${STRIPE_RETURN_URL}/account/billing`,
+            customer: customerId,
+            return_url: `${STRIPE_RETURN_URL}/subscription`,
           });
 
           return new Response(JSON.stringify({ url: session.url }), {

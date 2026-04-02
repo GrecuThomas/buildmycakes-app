@@ -4,6 +4,65 @@ import Navigation from "./Navigation";
 import Footer from "./Footer";
 import { GoogleAdBanner } from "./GoogleAdBanner";
 
+const communityDesigns = [
+  {
+    id: "classic-wedding",
+    eyebrow: "Three-Tier Elegance",
+    title: "Classic Wedding Cake",
+    description: "Elegant stacked tiers with soft florals and a timeless finish.",
+    icon: "🎂",
+    gradient: "from-rose-300 via-pink-200 to-blue-300",
+  },
+  {
+    id: "birthday-rainbow",
+    eyebrow: "Rainbow Delight",
+    title: "Colorful Birthday Cake",
+    description: "Playful portrait-style design with bold color bands and toppers.",
+    icon: "🧁",
+    gradient: "from-amber-300 via-orange-200 to-rose-300",
+  },
+  {
+    id: "minimalist-modern",
+    eyebrow: "Modern Chic",
+    title: "Minimalist Masterpiece",
+    description: "Clean geometry, crisp edges, and metallic accents for a modern look.",
+    icon: "✨",
+    gradient: "from-slate-300 via-zinc-200 to-violet-300",
+  },
+  {
+    id: "garden-party",
+    eyebrow: "Garden Romance",
+    title: "Floral Party Centerpiece",
+    description: "A tall floral-forward cake with layered petals and soft spring tones.",
+    icon: "🌸",
+    gradient: "from-pink-300 via-rose-200 to-emerald-200",
+  },
+  {
+    id: "midnight-luxury",
+    eyebrow: "Evening Luxe",
+    title: "Midnight Celebration Cake",
+    description: "Dark dramatic tiers with gold detailing designed for formal events.",
+    icon: "🌙",
+    gradient: "from-slate-700 via-indigo-500 to-slate-400",
+  },
+  {
+    id: "whimsical-bloom",
+    eyebrow: "Whimsical Bloom",
+    title: "Storybook Shower Cake",
+    description: "Portrait arrangement with floating blooms and a soft pastel palette.",
+    icon: "🦋",
+    gradient: "from-cyan-200 via-sky-200 to-fuchsia-200",
+  },
+  {
+    id: "autumn-harvest",
+    eyebrow: "Harvest Warmth",
+    title: "Autumn Wedding Cake",
+    description: "Tall textured tiers inspired by fall foliage and warm buttercream tones.",
+    icon: "🍂",
+    gradient: "from-orange-400 via-amber-300 to-yellow-200",
+  },
+];
+
 const App = () => {
   const router = useRouter();
   return (
@@ -184,65 +243,29 @@ const App = () => {
             <p className="text-xl text-slate-600 max-w-2xl mx-auto">
               See what our users created starting with our sketches and templates. Get inspired by the endless possibilities!
             </p>
+            <p className="text-sm font-medium text-slate-400 mt-4">Scroll sideways to browse more featured designs.</p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Gallery Item 1 */}
-            <div className="group rounded-2xl overflow-hidden border border-slate-200 shadow-lg hover:shadow-2xl transition-all">
-              <div className="bg-gradient-to-br from-rose-300 to-blue-300 h-64 flex items-center justify-center">
-                <div className="text-white text-center">
-                  <div className="text-6xl mb-2">🎂</div>
-                  <p className="font-semibold">Three-Tier Elegance</p>
-                </div>
-              </div>
-              <div className="p-6 bg-white">
-                <h3 className="font-bold text-lg text-slate-900 mb-2">Classic Wedding Cake</h3>
-                <p className="text-slate-600 text-sm mb-4">Elegant three-tier design with cascading flowers</p>
-                <button className="text-blue-600 font-semibold flex items-center gap-2 hover:gap-3 transition-all">
-                  View Design <ChevronRight size={16} />
-                </button>
-              </div>
+          <div className="-mx-4 px-4 overflow-x-auto pb-4 [scrollbar-width:thin] [scrollbar-color:#94a3b8_transparent]">
+            <div className="flex gap-6 snap-x snap-mandatory min-w-max">
+              {communityDesigns.map((design) => (
+                <article
+                  key={design.id}
+                  className="group snap-start w-[18.5rem] sm:w-[19.5rem] shrink-0 rounded-[2rem] overflow-hidden border border-slate-200 bg-white shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all"
+                >
+                  <div className={`bg-gradient-to-br ${design.gradient} aspect-[4/5] flex items-end justify-center p-6`}>
+                    <div className="w-full rounded-[1.5rem] border border-white/40 bg-white/18 backdrop-blur-sm px-5 py-6 text-white shadow-lg">
+                      <div className="text-6xl leading-none mb-4">{design.icon}</div>
+                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/80 mb-2">{design.eyebrow}</p>
+                      <p className="text-xl font-bold leading-tight">{design.title}</p>
+                    </div>
+                  </div>
+                  <div className="p-6 bg-white">
+                    <p className="text-slate-600 text-sm leading-6 min-h-16">{design.description}</p>
+                  </div>
+                </article>
+              ))}
             </div>
-
-            {/* Gallery Item 2 */}
-            <div className="group rounded-2xl overflow-hidden border border-slate-200 shadow-lg hover:shadow-2xl transition-all">
-              <div className="bg-gradient-to-br from-amber-300 to-rose-300 h-64 flex items-center justify-center">
-                <div className="text-white text-center">
-                  <div className="text-6xl mb-2">🧁</div>
-                  <p className="font-semibold">Rainbow Delight</p>
-                </div>
-              </div>
-              <div className="p-6 bg-white">
-                <h3 className="font-bold text-lg text-slate-900 mb-2">Colorful Birthday Cake</h3>
-                <p className="text-slate-600 text-sm mb-4">Vibrant multi-colored tiers with custom toppers</p>
-                <button className="text-blue-600 font-semibold flex items-center gap-2 hover:gap-3 transition-all">
-                  View Design <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Gallery Item 3 */}
-            <div className="group rounded-2xl overflow-hidden border border-slate-200 shadow-lg hover:shadow-2xl transition-all">
-              <div className="bg-gradient-to-br from-slate-300 to-purple-300 h-64 flex items-center justify-center">
-                <div className="text-white text-center">
-                  <div className="text-6xl mb-2">✨</div>
-                  <p className="font-semibold">Modern Chic</p>
-                </div>
-              </div>
-              <div className="p-6 bg-white">
-                <h3 className="font-bold text-lg text-slate-900 mb-2">Minimalist Masterpiece</h3>
-                <p className="text-slate-600 text-sm mb-4">Sleek geometric design with metallic accents</p>
-                <button className="text-blue-600 font-semibold flex items-center gap-2 hover:gap-3 transition-all">
-                  View Design <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center mt-12">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 rounded-2xl font-bold transition-all hover:translate-y-[-2px] shadow-lg">
-              See All Designs
-            </button>
           </div>
         </div>
       </section>

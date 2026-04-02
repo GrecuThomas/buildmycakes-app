@@ -22,6 +22,68 @@ function getSupabaseClient() {
   return supabase;
 }
 
+async function resolveLocalCustomer(stripeCustomerId: string): Promise<{ id: string; user_id: string } | null> {
+  const supabaseClient = getSupabaseClient();
+
+  const { data: existingCustomers, error: existingError } = await supabaseClient
+    .from('customers')
+    .select('id, user_id')
+    .eq('stripe_customer_id', stripeCustomerId)
+    .limit(1) as any;
+
+  if (existingError) {
+    console.error('[Webhook] Error querying customers table:', existingError);
+  }
+
+  if (existingCustomers?.[0]) {
+    return existingCustomers[0] as { id: string; user_id: string };
+  }
+
+  // Try creating a local customer record from Stripe metadata if missing.
+  const stripeCustomer = await stripe.customers.retrieve(stripeCustomerId);
+  if (!stripeCustomer || (stripeCustomer as Stripe.DeletedCustomer).deleted) {
+    console.error('[Webhook] Stripe customer is missing or deleted:', stripeCustomerId);
+    return null;
+  }
+
+  const customer = stripeCustomer as Stripe.Customer;
+  const userId = customer.metadata?.userId;
+  const email = customer.email;
+
+  if (!userId || !email) {
+    console.error('[Webhook] Cannot create local customer, missing metadata.userId or email:', {
+      stripeCustomerId,
+      userId,
+      email,
+    });
+    return null;
+  }
+
+  const { error: upsertError } = await (supabaseClient as any)
+    .from('customers')
+    .upsert(
+      {
+        user_id: userId,
+        stripe_customer_id: stripeCustomerId,
+        email,
+      },
+      { onConflict: 'stripe_customer_id' },
+    );
+
+  if (upsertError) {
+    console.error('[Webhook] Failed to upsert local customer:', upsertError);
+    return null;
+  }
+
+  const { data: hydratedCustomers } = await supabaseClient
+    .from('customers')
+    .select('id, user_id')
+    .eq('stripe_customer_id', stripeCustomerId)
+    .limit(1) as any;
+
+  return (hydratedCustomers?.[0] as { id: string; user_id: string } | undefined) ?? null;
+}
+
 async function handleChargeSucceeded(charge: Stripe.Charge) {
   try {
     console.log('[Webhook] Processing charge.succeeded event');
@@ -107,36 +169,12 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
     const priceId = (fullSubscription.items.data[0]?.price.id) || '';
 
     console.log(`[Webhook] Looking up customer with Stripe ID: ${customerId}`);
-    
-    // Get customer from database with retry for race condition
-    let customer: { id: string; user_id: string } | undefined;
-    
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      const { data: customers, error: queryError } = await supabaseClient
-        .from('customers')
-        .select('id, user_id')
-        .eq('stripe_customer_id', customerId) as any;
 
-      if (queryError) {
-        console.error(`[Webhook] Error querying customers table (attempt ${attempt}):`, queryError);
-        continue;
-      }
+    // Resolve local customer; auto-creates from Stripe metadata when missing.
+    const customer = await resolveLocalCustomer(customerId);
 
-      customer = customers?.[0] as { id: string; user_id: string } | undefined;
-      
-      if (customer) {
-        console.log(`[Webhook] Found customer on attempt ${attempt} with ID: ${customer.id} for user: ${customer.user_id}`);
-        break;
-      }
-      
-      if (attempt < 3) {
-        console.log(`[Webhook] Customer not found on attempt ${attempt}, retrying in 1 second...`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
-    
     if (!customer) {
-      console.error(`[Webhook] Customer not found for Stripe ID: ${customerId} after 3 attempts. This means the customer wasn't created during checkout.`);
+      console.error(`[Webhook] Customer not found for Stripe ID: ${customerId}.`);
       return;
     }
 
@@ -193,14 +231,18 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
 
     const { data: insertedSub, error: insertError } = await (supabaseClient as any)
       .from('subscriptions')
-      .insert({
-        customer_id: customer.id,
-        stripe_subscription_id: fullSubscription.id,
-        stripe_price_id: priceId,
-        status: fullSubscription.status,
-        current_period_start: new Date(startTime * 1000).toISOString(),
-        current_period_end: new Date(endTime * 1000).toISOString(),
-      })
+      .upsert(
+        {
+          customer_id: customer.id,
+          stripe_subscription_id: fullSubscription.id,
+          stripe_price_id: priceId,
+          status: fullSubscription.status,
+          current_period_start: new Date(startTime * 1000).toISOString(),
+          current_period_end: new Date(endTime * 1000).toISOString(),
+          cancel_at_period_end: fullSubscription.cancel_at_period_end,
+        },
+        { onConflict: 'stripe_subscription_id' },
+      )
       .select();
 
     if (insertError) {
@@ -211,6 +253,29 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
     console.log(`[Webhook] Subscription created successfully: ${subscription.id}`, insertedSub);
   } catch (error) {
     console.error('[Webhook] Error handling subscription.created webhook:', error);
+    throw error;
+  }
+}
+
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  try {
+    console.log('[Webhook] Processing checkout.session.completed event');
+
+    if (session.mode !== 'subscription') {
+      console.log('[Webhook] Non-subscription checkout session, skipping');
+      return;
+    }
+
+    const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+    if (!subscriptionId) {
+      console.log('[Webhook] checkout.session.completed has no subscription id, skipping');
+      return;
+    }
+
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    await handleSubscriptionCreated(subscription);
+  } catch (error) {
+    console.error('[Webhook] Error handling checkout.session.completed:', error);
     throw error;
   }
 }
@@ -349,6 +414,12 @@ export const Route = createFileRoute('/api/webhooks/stripe')({
               // Handle failed payment (optional: send email notification)
               const invoice = event.data.object as Stripe.Invoice;
               console.log(`Payment failed for invoice: ${invoice.id}`);
+              break;
+            }
+
+            case 'checkout.session.completed': {
+              const session = event.data.object as Stripe.Checkout.Session;
+              await handleCheckoutSessionCompleted(session);
               break;
             }
 

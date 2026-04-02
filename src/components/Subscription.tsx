@@ -18,6 +18,7 @@ const Subscription = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [timeLeft, setTimeLeft] = useState<string>('');
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
   useEffect(() => {
     const fetchSubscription = async () => {
@@ -36,6 +37,32 @@ const Subscription = () => {
           console.log('[Subscription] No session, redirecting to login');
           await router.navigate({ to: '/log-in' });
           return;
+        }
+
+        // Fallback for local/dev: reconcile checkout result directly from session_id
+        const searchParams = new URLSearchParams(window.location.search);
+        const success = searchParams.get('success');
+        const sessionId = searchParams.get('session_id');
+
+        if (success === 'true' && sessionId) {
+          try {
+            const reconcileResponse = await fetch('/api/reconcile-checkout', {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ sessionId }),
+            });
+
+            if (!reconcileResponse.ok) {
+              const payload = await reconcileResponse.json().catch(() => null);
+              console.warn('[Subscription] Reconcile failed:', payload?.error || reconcileResponse.statusText);
+            }
+          } finally {
+            // Clean up query params so refreshes do not keep retrying reconciliation
+            window.history.replaceState({}, '', '/subscription');
+          }
         }
         
         console.log('[Subscription] Fetching subscription details with token...');
@@ -131,6 +158,47 @@ const Subscription = () => {
     if (brandLower === 'amex') return '🟩';
     if (brandLower === 'discover') return '🟪';
     return '💳';
+  };
+
+  const handleOpenBillingPortal = async () => {
+    try {
+      setError('');
+      setIsOpeningPortal(true);
+
+      const { supabase } = await import('../lib/supabase');
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        await router.navigate({ to: '/log-in' });
+        return;
+      }
+
+      const response = await fetch('/api/portal-session', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || 'Failed to create billing portal session');
+      }
+
+      const payload = await response.json();
+      if (!payload?.url) {
+        throw new Error('Billing portal URL was not returned');
+      }
+
+      window.location.href = payload.url;
+    } catch (err: any) {
+      setError(err.message || 'Unable to open billing portal');
+    } finally {
+      setIsOpeningPortal(false);
+    }
   };
 
   return (
@@ -352,13 +420,11 @@ const Subscription = () => {
                   <h3 className="font-semibold text-blue-900 mb-2">Manage Your Billing</h3>
                   <p className="text-sm text-blue-800 mb-4">Access the Stripe billing portal to update payment methods, change plans, and more.</p>
                   <button
-                    onClick={() => {
-                      // TODO: Implement billing portal redirect
-                      alert('Billing portal coming soon');
-                    }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    onClick={handleOpenBillingPortal}
+                    disabled={isOpeningPortal}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Open Billing Portal
+                    {isOpeningPortal ? 'Opening...' : 'Open Billing Portal'}
                   </button>
                 </div>
               </>

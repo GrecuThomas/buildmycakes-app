@@ -20,6 +20,33 @@ function getAdminSupabaseClient() {
   return createClient(supabaseUrl, supabaseServiceRoleKey);
 }
 
+function resolveStripeSubscriptionPeriod(subscription: Stripe.Subscription) {
+  let startTime = (subscription as any).current_period_start;
+  let endTime = (subscription as any).current_period_end;
+
+  if (!startTime || !endTime) {
+    const billingInterval = subscription.items.data[0]?.price.recurring?.interval || 'month';
+    const billingIntervalCount = subscription.items.data[0]?.price.recurring?.interval_count || 1;
+
+    startTime = subscription.created;
+
+    const endDate = new Date(startTime * 1000);
+    if (billingInterval === 'month') {
+      endDate.setMonth(endDate.getMonth() + billingIntervalCount);
+    } else if (billingInterval === 'year') {
+      endDate.setFullYear(endDate.getFullYear() + billingIntervalCount);
+    } else if (billingInterval === 'week') {
+      endDate.setDate(endDate.getDate() + 7 * billingIntervalCount);
+    } else if (billingInterval === 'day') {
+      endDate.setDate(endDate.getDate() + billingIntervalCount);
+    }
+
+    endTime = Math.floor(endDate.getTime() / 1000);
+  }
+
+  return { startTime, endTime };
+}
+
 /**
  * Create or get a Stripe customer for the authenticated user
  * Note: Auth should be handled by API routes, not here
@@ -184,11 +211,18 @@ export const getSubscriptionDetails = createServerFn({ method: 'GET' })
               email: user.email,
             });
 
-          customerRecord = {
-            id: newStripeCustomer.id,
-            stripe_customer_id: newStripeCustomer.id,
-            user_id: user.id,
-          };
+          const { data: insertedCustomers, error: insertedCustomerError } = await (adminClient as any)
+            .from('customers')
+            .select('id, stripe_customer_id, email')
+            .eq('user_id', user.id)
+            .limit(1);
+
+          if (insertedCustomerError) {
+            console.error('[getSubscriptionDetails] Error reloading created customer:', insertedCustomerError);
+            return { hasPayment: false, subscription: null, paymentMethods: [] };
+          }
+
+          customerRecord = insertedCustomers?.[0];
 
           console.log('[getSubscriptionDetails] Created new customer:', newStripeCustomer.id);
         } catch (error) {
@@ -197,14 +231,31 @@ export const getSubscriptionDetails = createServerFn({ method: 'GET' })
         }
       }
 
+      if (!customerRecord) {
+        console.error('[getSubscriptionDetails] Customer record still missing after create/load');
+        return { hasPayment: false, subscription: null, paymentMethods: [] };
+      }
+
       console.log('[getSubscriptionDetails] Found/created customer:', customerRecord.id);
 
       // Get subscriptions for this customer - use ADMIN client to bypass RLS
-      const { data: subscriptions, error: subsError } = await (adminClient as any)
+      let { data: subscriptions, error: subsError } = await (adminClient as any)
         .from('subscriptions')
         .select('*')
         .eq('customer_id', customerRecord.id)
         .order('created_at', { ascending: false });
+
+      // Fallback: resolve subscriptions by joined customer ownership if direct customer_id lookup misses.
+      if ((!subscriptions || subscriptions.length === 0) && !subsError) {
+        const fallbackResult = await (adminClient as any)
+          .from('subscriptions')
+          .select('*, customers!inner(user_id, stripe_customer_id)')
+          .eq('customers.user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        subscriptions = fallbackResult.data;
+        subsError = fallbackResult.error;
+      }
 
       console.log('[getSubscriptionDetails] Subscriptions query - found:', subscriptions?.length, 'Error:', subsError);
 
@@ -236,7 +287,60 @@ export const getSubscriptionDetails = createServerFn({ method: 'GET' })
       });
 
       if (validSubscriptions.length === 0) {
-        console.log('[getSubscriptionDetails] No valid (non-expired) subscriptions found');
+        console.log('[getSubscriptionDetails] No valid (non-expired) subscriptions found, checking Stripe directly');
+
+        try {
+          const stripeSubscriptions = await stripe.subscriptions.list({
+            customer: customerRecord.stripe_customer_id,
+            status: 'all',
+            limit: 10,
+          });
+
+          const stripeActiveSubscription = stripeSubscriptions.data.find(
+            (subscription) => subscription.status !== 'canceled' && subscription.status !== 'incomplete_expired',
+          );
+
+          if (stripeActiveSubscription) {
+            const priceId = stripeActiveSubscription.items.data[0]?.price.id || '';
+            const { startTime, endTime } = resolveStripeSubscriptionPeriod(stripeActiveSubscription);
+
+            const { error: syncError } = await (adminClient as any)
+              .from('subscriptions')
+              .upsert(
+                {
+                  customer_id: customerRecord.id,
+                  stripe_subscription_id: stripeActiveSubscription.id,
+                  stripe_price_id: priceId,
+                  status: stripeActiveSubscription.status,
+                  current_period_start: new Date(startTime * 1000).toISOString(),
+                  current_period_end: new Date(endTime * 1000).toISOString(),
+                  cancel_at_period_end: stripeActiveSubscription.cancel_at_period_end,
+                },
+                { onConflict: 'stripe_subscription_id' },
+              );
+
+            if (syncError) {
+              console.error('[getSubscriptionDetails] Error syncing Stripe subscription to Supabase:', syncError);
+            } else {
+              return {
+                hasPayment: true,
+                subscription: {
+                  customer_id: customerRecord.id,
+                  stripe_subscription_id: stripeActiveSubscription.id,
+                  stripe_price_id: priceId,
+                  status: stripeActiveSubscription.status,
+                  current_period_start: new Date(startTime * 1000).toISOString(),
+                  current_period_end: new Date(endTime * 1000).toISOString(),
+                  cancel_at_period_end: stripeActiveSubscription.cancel_at_period_end,
+                },
+                paymentMethods: [],
+              };
+            }
+          }
+        } catch (stripeSyncError) {
+          console.error('[getSubscriptionDetails] Stripe fallback lookup failed:', stripeSyncError);
+        }
+
         return { hasPayment: false, subscription: null, paymentMethods: [] };
       }
 
@@ -304,7 +408,7 @@ export const createPortalSession = createServerFn({ method: 'POST' })
     try {
       const session = await stripe.billingPortal.sessions.create({
         customer: data.customerId,
-        return_url: `${process.env.VITE_SITE_URL || 'http://localhost:3000'}/account/billing`,
+        return_url: `${process.env.VITE_SITE_URL || 'http://localhost:3000'}/subscription`,
       });
 
       return { url: session.url };

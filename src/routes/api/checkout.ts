@@ -119,7 +119,7 @@ export const Route = createFileRoute('/api/checkout')({
                 quantity: 1,
               },
             ],
-            success_url: `${STRIPE_RETURN_URL}/subscription?success=true`,
+            success_url: `${STRIPE_RETURN_URL}/subscription?success=true&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${STRIPE_RETURN_URL}/pricing-checkout`,
           });
 
