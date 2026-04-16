@@ -14,6 +14,7 @@ import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as SubscriptionRouteImport } from './routes/subscription'
 import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as RoadmapRouteImport } from './routes/roadmap'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as PricingCheckoutRouteImport } from './routes/pricing-checkout'
@@ -57,6 +58,11 @@ const SubscriptionRoute = SubscriptionRouteImport.update({
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoadmapRoute = RoadmapRouteImport.update({
+  id: '/roadmap',
+  path: '/roadmap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/pricing-checkout': typeof PricingCheckoutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
+  '/roadmap': typeof RoadmapRoute
   '/sign-up': typeof SignUpRoute
   '/subscription': typeof SubscriptionRoute
   '/support': typeof SupportRoute
@@ -194,6 +201,7 @@ export interface FileRoutesByTo {
   '/pricing-checkout': typeof PricingCheckoutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
+  '/roadmap': typeof RoadmapRoute
   '/sign-up': typeof SignUpRoute
   '/subscription': typeof SubscriptionRoute
   '/support': typeof SupportRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/pricing-checkout': typeof PricingCheckoutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
+  '/roadmap': typeof RoadmapRoute
   '/sign-up': typeof SignUpRoute
   '/subscription': typeof SubscriptionRoute
   '/support': typeof SupportRoute
@@ -249,6 +258,7 @@ export interface FileRouteTypes {
     | '/pricing-checkout'
     | '/privacy-policy'
     | '/profile'
+    | '/roadmap'
     | '/sign-up'
     | '/subscription'
     | '/support'
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | '/pricing-checkout'
     | '/privacy-policy'
     | '/profile'
+    | '/roadmap'
     | '/sign-up'
     | '/subscription'
     | '/support'
@@ -301,6 +312,7 @@ export interface FileRouteTypes {
     | '/pricing-checkout'
     | '/privacy-policy'
     | '/profile'
+    | '/roadmap'
     | '/sign-up'
     | '/subscription'
     | '/support'
@@ -328,6 +340,7 @@ export interface RootRouteChildren {
   PricingCheckoutRoute: typeof PricingCheckoutRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ProfileRoute: typeof ProfileRoute
+  RoadmapRoute: typeof RoadmapRoute
   SignUpRoute: typeof SignUpRoute
   SubscriptionRoute: typeof SubscriptionRoute
   SupportRoute: typeof SupportRoute
@@ -376,6 +389,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-up'
       fullPath: '/sign-up'
       preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roadmap': {
+      id: '/roadmap'
+      path: '/roadmap'
+      fullPath: '/roadmap'
+      preLoaderRoute: typeof RoadmapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -538,6 +558,7 @@ const rootRouteChildren: RootRouteChildren = {
   PricingCheckoutRoute: PricingCheckoutRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   ProfileRoute: ProfileRoute,
+  RoadmapRoute: RoadmapRoute,
   SignUpRoute: SignUpRoute,
   SubscriptionRoute: SubscriptionRoute,
   SupportRoute: SupportRoute,

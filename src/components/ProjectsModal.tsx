@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Copy, Clock } from 'lucide-react';
-import { listProjects, deleteProject } from '../server/projects.functions';
+import { X, Trash2, Copy, Clock, Globe } from 'lucide-react';
+import { listProjects, deleteProject, publishProjectAsTemplate } from '../server/projects.functions';
 
 interface Project {
   id: string;
@@ -21,8 +21,10 @@ export function ProjectsModal({ isOpen, onClose, onLoad }: ProjectsModalProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loadingProjectId, setLoadingProjectId] = useState<string | null>(null);
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
+  const [publishingProjectId, setPublishingProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -34,6 +36,7 @@ export function ProjectsModal({ isOpen, onClose, onLoad }: ProjectsModalProps) {
     try {
       setIsLoading(true);
       setError('');
+      setSuccessMessage('');
       
       // Get auth session
       const { supabase } = await import('../lib/supabase');
@@ -62,6 +65,7 @@ export function ProjectsModal({ isOpen, onClose, onLoad }: ProjectsModalProps) {
     try {
       setLoadingProjectId(project.id);
       setError('');
+      setSuccessMessage('');
       await onLoad(project);
       onClose();
     } catch (err: any) {
@@ -75,6 +79,8 @@ export function ProjectsModal({ isOpen, onClose, onLoad }: ProjectsModalProps) {
     if (confirm('Are you sure you want to delete this project?')) {
       try {
         setDeletingProjectId(projectId);
+        setError('');
+        setSuccessMessage('');
         
         // Get auth session
         const { supabase } = await import('../lib/supabase');
@@ -95,6 +101,55 @@ export function ProjectsModal({ isOpen, onClose, onLoad }: ProjectsModalProps) {
       } finally {
         setDeletingProjectId(null);
       }
+    }
+  };
+
+  const slugify = (value: string) =>
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+  const handlePublish = async (project: Project) => {
+    const confirmed = confirm(`Publish "${project.name}" as a community sketch?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setPublishingProjectId(project.id);
+      setError('');
+      setSuccessMessage('');
+
+      const { supabase } = await import('../lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('Not authenticated. Please log in first.');
+      }
+
+      const baseSlug = slugify(project.name) || 'community-sketch';
+      const result = await (publishProjectAsTemplate as any)({
+        data: {
+          projectId: project.id,
+          slug: `${baseSlug}-${project.id.slice(0, 8)}`,
+          name: project.name,
+          description: `Community template published from ${project.name}`,
+          authToken: session.access_token,
+        },
+      });
+
+      if (!result.success || !result.template) {
+        throw new Error(result.error || 'Failed to publish project');
+      }
+
+      setSuccessMessage(`Published successfully. Template ID: ${result.template.id}`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to publish project');
+    } finally {
+      setPublishingProjectId(null);
     }
   };
 
@@ -132,6 +187,12 @@ export function ProjectsModal({ isOpen, onClose, onLoad }: ProjectsModalProps) {
           </div>
         )}
 
+        {successMessage && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm mb-6">
+            {successMessage}
+          </div>
+        )}
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
@@ -164,7 +225,16 @@ export function ProjectsModal({ isOpen, onClose, onLoad }: ProjectsModalProps) {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-2 ml-4 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handlePublish(project)}
+                      disabled={publishingProjectId === project.id}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-700 text-sm font-semibold rounded-lg hover:bg-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      title="Publish to community"
+                    >
+                      <Globe size={14} />
+                      {publishingProjectId === project.id ? 'Publishing...' : 'Publish'}
+                    </button>
                     <button
                       onClick={() => handleLoad(project)}
                       disabled={loadingProjectId === project.id}

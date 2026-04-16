@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef, FC, ReactNode, MouseEvent } from "react";
-import { Circle, Square, Hexagon, Plus, Trash2, ArrowUp, ArrowDown, Move, Download, ArrowLeft, Save, FolderOpen, RotateCcw } from "lucide-react";
+import { Circle, Square, Hexagon, Plus, Trash2, ArrowUp, ArrowDown, Move, Download, ArrowLeft, Save, FolderOpen, RotateCcw, LogIn, UserPlus } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
 import { SaveProjectModal } from "./SaveProjectModal";
 import { ProjectsModal } from "./ProjectsModal";
 import { AdWall } from "./AdWall";
-import { saveProject } from "../server/projects.functions";
+import { saveProject, getProject } from "../server/projects.functions";
 import { getSubscriptionDetails } from "../server/stripe.functions";
 import { useSessionAutoSave, getSessionData, clearSessionData } from "../lib/useSessionStorage";
 
@@ -493,7 +493,11 @@ const TierShape: FC<TierShapeProps> = ({ tier, yBase, maxW, isHovered, onClick, 
 };
 
 // --- MAIN APPLICATION COMPONENT ---
-export default function Page(): ReactNode {
+interface CakeTierDesignerProps {
+  initialProjectId?: string;
+}
+
+export default function Page({ initialProjectId }: CakeTierDesignerProps): ReactNode {
   const router = useRouter();
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [hoveredTier, setHoveredTier] = useState<string | null>(null);
@@ -551,6 +555,7 @@ export default function Page(): ReactNode {
   // Session Restore State
   const [showRestoreNotification, setShowRestoreNotification] = useState<boolean>(false);
   const [isNotificationClosing, setIsNotificationClosing] = useState<boolean>(false);
+  const [showGuestPrompt, setShowGuestPrompt] = useState<boolean>(false);
 
   // Auto-dismiss notification after 5 seconds
   useEffect(() => {
@@ -580,9 +585,25 @@ export default function Page(): ReactNode {
         const scopeId = session?.user?.id || "guest";
         setSessionScopeId(scopeId);
 
+        if (initialProjectId && session?.access_token) {
+          const projectResult = await (getProject as any)({
+            data: {
+              projectId: initialProjectId,
+              authToken: session.access_token,
+            },
+          });
+
+          if (!projectResult.success || !projectResult.project) {
+            throw new Error(projectResult.error || "Failed to load requested project");
+          }
+
+          setTiers(projectResult.project.tiers);
+          setDecorations(projectResult.project.decorations);
+        }
+
         // Restore session data for the active user scope if available
         const sessionData = getSessionData(scopeId);
-        if (sessionData && sessionData.tiers.length > 0) {
+        if (!initialProjectId && sessionData && sessionData.tiers.length > 0) {
           setTiers(sessionData.tiers);
           setDecorations(sessionData.decorations);
           setShowRestoreNotification(true);
@@ -590,18 +611,23 @@ export default function Page(): ReactNode {
 
         if (!session?.access_token) {
           setHasSubscription(false);
+          setShowGuestPrompt(true);
         } else {
+          setShowGuestPrompt(false);
           const response = await getSubscriptionDetails({ data: { authToken: session.access_token } });
           setHasSubscription(response.hasPayment);
         }
       } catch (error) {
         console.error("Error checking subscription:", error);
         setHasSubscription(false);
+        if (initialProjectId) {
+          alert(`Error loading project: ${(error as Error).message}`);
+        }
       }
     };
 
     initializeBuilderState();
-  }, []);
+  }, [initialProjectId]);
 
   // Auto-save session data whenever tiers or decorations change
   useSessionAutoSave(tiers, decorations, 1000, sessionScopeId);
@@ -1173,6 +1199,52 @@ export default function Page(): ReactNode {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-slate-100 flex flex-col font-sans text-slate-800">
+      {/* Guest Login Prompt */}
+      {showGuestPrompt && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 bg-blue-50 border-b border-blue-100">
+              <h2 className="text-lg font-bold text-slate-900">You are not logged in</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Create an account or log in to unlock all features, including easier project saving and a smoother overall workflow.
+              </p>
+            </div>
+
+            <div className="px-6 py-5">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                You can continue in guest mode, but registering helps you get the full Build My Cakes experience.
+              </div>
+
+              <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => router.navigate({ to: "/sign-up" })}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Create account
+                </button>
+                <button
+                  onClick={() => router.navigate({ to: "/log-in" })}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Log in
+                </button>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button
+                onClick={() => setShowGuestPrompt(false)}
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors"
+              >
+                Continue as guest
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Session Restore Notification */}
       {showRestoreNotification && (
         <div 
@@ -1261,10 +1333,10 @@ export default function Page(): ReactNode {
         {/* Left Sidebar (Decorations) */}
         <aside className="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col h-1/2 md:h-full z-10 shadow-lg md:shadow-none shrink-0">
           <div className="p-6 flex-1 overflow-y-auto">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Decorations</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-4">Decorations</h2>
 
             <div className="mb-8">
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-3">Flowers</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3">Flowers</h3>
               <div className="grid grid-cols-2 gap-4">
                 {decorationsList
                   .filter((d) => d.type === "flower")
@@ -1287,7 +1359,7 @@ export default function Page(): ReactNode {
             </div>
 
             <div>
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-300 mb-3">Leaves</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3">Leaves</h3>
               <div className="grid grid-cols-2 gap-4">
                 {decorationsList
                   .filter((d) => d.type === "leaf")
@@ -1309,7 +1381,7 @@ export default function Page(): ReactNode {
               </div>
             </div>
 
-            <p className="text-[10px] text-slate-400 mt-6 text-center border-t border-slate-100 pt-4">More decorative tools coming soon</p>
+            <p className="text-[10px] text-slate-500 mt-6 text-center border-t border-slate-100 pt-4">More decorative tools coming soon</p>
           </div>
         </aside>
 

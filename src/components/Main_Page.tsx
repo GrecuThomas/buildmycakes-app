@@ -1,70 +1,62 @@
-import { ArrowRight, Wand2, Eye, Smartphone, Save, ChevronRight, Star, Users } from "lucide-react";
+import { ArrowRight, Wand2, Eye, Smartphone, Save, ChevronRight, Star, X, Download } from "lucide-react";
+import React from "react";
 import { useRouter } from "@tanstack/react-router";
 import Navigation from "./Navigation";
 import Footer from "./Footer";
 import { GoogleAdBanner } from "./GoogleAdBanner";
+import { copyTemplateSketch } from "../server/projects.functions";
 
 const communityDesigns = [
   {
     id: "classic-wedding",
+    sketchId: "45403174-55ad-4b9e-aea0-bd1cdf170015", // Add real UUID when created in DB
     eyebrow: "Three-Tier Elegance",
     title: "Classic Wedding Cake",
     description: "Elegant stacked tiers with soft florals and a timeless finish.",
     icon: "🎂",
     gradient: "from-rose-300 via-pink-200 to-blue-300",
+    cakeImage: "main_page_cakes/1.jpg",
+    sketchImage: "main_page_cakes/sketches/1.png?v=2",
   },
   {
     id: "birthday-rainbow",
+    sketchId: "8b5c3d2e-0f4g-58c9-b2d3-4e6f8g0h2i3j",
     eyebrow: "Rainbow Delight",
     title: "Colorful Birthday Cake",
     description: "Playful portrait-style design with bold color bands and toppers.",
     icon: "🧁",
     gradient: "from-amber-300 via-orange-200 to-rose-300",
+    cakeImage: "main_page_cakes/2.jpg",
+    sketchImage: "main_page_cakes/sketches/1.png?v=2",
   },
   {
     id: "minimalist-modern",
+    sketchId: "9c6d4e3f-1g5h-69d0-c3e4-5f7g9h1i3j4k",
     eyebrow: "Modern Chic",
     title: "Minimalist Masterpiece",
     description: "Clean geometry, crisp edges, and metallic accents for a modern look.",
     icon: "✨",
     gradient: "from-slate-300 via-zinc-200 to-violet-300",
+    cakeImage: "main_page_cakes/3.jpg",
+    sketchImage: "main_page_cakes/sketches/1.png?v=2",
   },
   {
     id: "garden-party",
+    sketchId: "0d7e5f4g-2h6i-70e1-d4f5-6g8h0i2j4k5l",
     eyebrow: "Garden Romance",
     title: "Floral Party Centerpiece",
     description: "A tall floral-forward cake with layered petals and soft spring tones.",
     icon: "🌸",
     gradient: "from-pink-300 via-rose-200 to-emerald-200",
-  },
-  {
-    id: "midnight-luxury",
-    eyebrow: "Evening Luxe",
-    title: "Midnight Celebration Cake",
-    description: "Dark dramatic tiers with gold detailing designed for formal events.",
-    icon: "🌙",
-    gradient: "from-slate-700 via-indigo-500 to-slate-400",
-  },
-  {
-    id: "whimsical-bloom",
-    eyebrow: "Whimsical Bloom",
-    title: "Storybook Shower Cake",
-    description: "Portrait arrangement with floating blooms and a soft pastel palette.",
-    icon: "🦋",
-    gradient: "from-cyan-200 via-sky-200 to-fuchsia-200",
-  },
-  {
-    id: "autumn-harvest",
-    eyebrow: "Harvest Warmth",
-    title: "Autumn Wedding Cake",
-    description: "Tall textured tiers inspired by fall foliage and warm buttercream tones.",
-    icon: "🍂",
-    gradient: "from-orange-400 via-amber-300 to-yellow-200",
+    cakeImage: "main_page_cakes/4.jpg",
+    sketchImage: "main_page_cakes/sketches/1.png?v=2",
   },
 ];
 
 const App = () => {
   const router = useRouter();
+  const [selectedDesign, setSelectedDesign] = React.useState<typeof communityDesigns[0] | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       {/* Navigation */}
@@ -74,7 +66,7 @@ const App = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8 text-center lg:text-left">
-              <h1 className="text-5xl lg:text-7xl font-extrabold text-slate-900 leading-[1.1] tracking-tight">
+              <h1 className="text-5xl lg:text-6xl font-extrabold text-slate-900 leading-[1.1] tracking-tight">
                 Design your <span className="text-blue-600">next tiered cake</span> in minutes.
               </h1>
 
@@ -84,11 +76,17 @@ const App = () => {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
-                <button onClick={() => router.navigate({ to: '/builder' })} className="group flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-2xl font-bold transition-all hover:translate-y-[-2px] shadow-xl shadow-slate-200">
+                <button onClick={() => router.navigate({ to: '/builder' })} className="group flex items-center justify-center gap-2 whitespace-nowrap bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-2xl font-bold transition-all hover:translate-y-[-2px] shadow-xl shadow-slate-200">
                   Start Building
                   <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </button>
-                <button className="flex items-center justify-center gap-2 bg-white border border-slate-200 hover:border-slate-300 px-8 py-4 rounded-2xl font-bold text-slate-700 transition-all hover:bg-slate-50" onClick={() => router.navigate({ to: '/tutorials' })}>
+                <button
+                  onClick={() => router.navigate({ to: '/sign-up' })}
+                  className="flex items-center justify-center gap-2 whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold transition-all hover:translate-y-[-2px] shadow-xl shadow-blue-200"
+                >
+                  Create Free Account
+                </button>
+                <button className="flex items-center justify-center gap-2 whitespace-nowrap bg-white border border-slate-200 hover:border-slate-300 px-8 py-4 rounded-2xl font-bold text-slate-700 transition-all hover:bg-slate-50" onClick={() => router.navigate({ to: '/tutorials' })}>
                   Watch Demo
                 </button>
               </div>
@@ -241,9 +239,8 @@ const App = () => {
               Beautiful Cakes Built by Our Community
             </h2>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              See what our users created starting with our sketches and templates. Get inspired by the endless possibilities!
+              See what our users created starting with our sketches and templates. Click any cake to see the sketch and customize it in the builder!
             </p>
-            <p className="text-sm font-medium text-slate-400 mt-4">Scroll sideways to browse more featured designs.</p>
           </div>
 
           <div className="-mx-4 px-4 overflow-x-auto pb-4 [scrollbar-width:thin] [scrollbar-color:#94a3b8_transparent]">
@@ -251,24 +248,143 @@ const App = () => {
               {communityDesigns.map((design) => (
                 <article
                   key={design.id}
-                  className="group snap-start w-[18.5rem] sm:w-[19.5rem] shrink-0 rounded-[2rem] overflow-hidden border border-slate-200 bg-white shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all"
-                >
-                  <div className={`bg-gradient-to-br ${design.gradient} aspect-[4/5] flex items-end justify-center p-6`}>
-                    <div className="w-full rounded-[1.5rem] border border-white/40 bg-white/18 backdrop-blur-sm px-5 py-6 text-white shadow-lg">
-                      <div className="text-6xl leading-none mb-4">{design.icon}</div>
-                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/80 mb-2">{design.eyebrow}</p>
-                      <p className="text-xl font-bold leading-tight">{design.title}</p>
-                    </div>
+                  onClick={() => setSelectedDesign(design)}
+                  className="group snap-start w-[20rem] sm:w-[21rem] shrink-0 rounded-[2rem] overflow-hidden border border-slate-200 bg-white shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all cursor-pointer"
+              >
+                <div className={`bg-gradient-to-br ${design.gradient} aspect-[3/4] relative flex items-center justify-center p-6 overflow-hidden`}>
+                  {design.cakeImage && (
+                    <img
+                      src={design.cakeImage}
+                      alt={design.title}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center pointer-events-none z-20">
+                    <span className="text-white font-semibold opacity-0 group-hover:opacity-100 transition-opacity">View & Edit</span>
                   </div>
-                  <div className="p-6 bg-white">
-                    <p className="text-slate-600 text-sm leading-6 min-h-16">{design.description}</p>
-                  </div>
-                </article>
-              ))}
+                </div>
+                <div className="p-6 bg-white">
+                  <p className="text-slate-600 text-sm leading-6">{design.description}</p>
+                </div>
+              </article>
+            ))}
             </div>
           </div>
         </div>
       </section>
+
+      {/* Sketch Comparison Modal */}
+      {selectedDesign && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setSelectedDesign(null)}
+        >
+          <div className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+              <h3 className="text-2xl font-bold text-slate-900">{selectedDesign.title}</h3>
+              <button
+                onClick={() => setSelectedDesign(null)}
+                className="p-2 hover:bg-slate-200 rounded-lg transition-colors text-slate-600 hover:text-slate-900"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-0 p-8">
+              {/* Cake Image */}
+              <div className="flex flex-col gap-4">
+                <h4 className="text-lg font-semibold text-slate-900">Final Cake Design</h4>
+                <div className="w-full md:max-w-[96%] mr-auto rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 min-h-[20rem] md:min-h-[24rem] flex items-center justify-center p-4">
+                  {selectedDesign.cakeImage ? (
+                    <img
+                      src={selectedDesign.cakeImage}
+                      alt="Cake"
+                      className="max-w-full max-h-[65vh] object-contain"
+                    />
+                  ) : (
+                    <div className="text-slate-400 text-center">
+                      <p className="text-4xl mb-2">{selectedDesign.icon}</p>
+                      <p>Cake image coming soon</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Sketch Image */}
+              <div className="flex flex-col gap-4">
+                <h4 className="text-lg font-semibold text-slate-900">Blueprint Sketch</h4>
+                <div className="w-full md:max-w-[96%] mr-auto rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 min-h-[20rem] md:min-h-[24rem] flex items-center justify-center p-4">
+                  {selectedDesign.sketchImage ? (
+                    <img
+                      src={selectedDesign.sketchImage}
+                      alt="Sketch"
+                      className="max-w-full max-h-[65vh] object-contain"
+                    />
+                  ) : (
+                    <div className="text-slate-400 text-center">
+                      <p className="text-4xl mb-2">📐</p>
+                      <p>Sketch image coming soon</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-8 py-6 border-t border-slate-200 bg-slate-50 flex gap-4 justify-end">
+              <button
+                onClick={() => setSelectedDesign(null)}
+                className="px-6 py-2.5 rounded-lg border border-slate-300 text-slate-700 font-semibold hover:bg-slate-100 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={async () => {
+                  setIsLoading(true);
+                  try {
+                    const { supabase } = await import("../lib/supabase");
+                    const { data: sessionData } = await supabase.auth.getSession();
+                    
+                    if (!sessionData?.session) {
+                      // Not logged in - redirect to sign up
+                      router.navigate({ to: '/sign-up' });
+                      setSelectedDesign(null);
+                      return;
+                    }
+
+                    // Copy the template sketch
+                    const result = await copyTemplateSketch({
+                      data: {
+                        sketchId: selectedDesign.sketchId,
+                        authToken: sessionData.session.access_token,
+                      },
+                    });
+
+                    if (result.success && result.project) {
+                      // Navigate to builder with the new project
+                      router.navigate({
+                        to: '/builder',
+                        search: { projectId: result.project.id },
+                      });
+                      setSelectedDesign(null);
+                    } else {
+                      alert('Error loading sketch: ' + (result.error || 'Unknown error'));
+                    }
+                  } catch (error: any) {
+                    alert('Error: ' + error.message);
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed"
+              >
+                <Download size={18} />
+                {isLoading ? 'Loading...' : 'Load Sketch in Builder'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Social Proof Section */}
       <section className="bg-gradient-to-r from-blue-600 to-indigo-600 py-20 px-4 sm:px-6 lg:px-8 text-white">

@@ -17,6 +17,7 @@ const Footer = () => {
           </div>
           <div className="text-right">
             <h3 className="font-semibold text-slate-900 mb-2">Company</h3>
+            <a href="/roadmap" className="block text-sm text-slate-600 hover:text-slate-900 mb-1">Roadmap</a>
             <a href="/about-us" className="block text-sm text-slate-600 hover:text-slate-900 mb-1">About Us</a>
             <a href="/support" className="block text-sm text-slate-600 hover:text-slate-900 mb-1">Support/Contact Us</a>
           </div>
