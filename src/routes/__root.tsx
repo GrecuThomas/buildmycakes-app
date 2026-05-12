@@ -65,6 +65,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1764282207738468" crossOrigin="anonymous"></script>
       </head>
       <body>
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>

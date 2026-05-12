@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { AlertCircle } from 'lucide-react';
+import { GoogleAdBanner } from './GoogleAdBanner';
 
 interface AdWallProps {
   isOpen: boolean;
@@ -67,10 +68,8 @@ export function AdWall({ isOpen, onComplete, onCancel, fileName }: AdWallProps) 
             </a>
           </div>
 
-          {/* Additional Ad Space */}
-          <div className="mb-6 bg-gray-100 rounded-lg p-4 border-2 border-dashed border-gray-300 text-center">
-            <p className="text-gray-500 text-xs">Ad Space</p>
-          </div>
+          {/* Google Ad */}
+          <GoogleAdBanner adSlot="4633851948" adFormat="rectangle" className="mb-6" />
 
           <div className="mb-4 bg-white/10 rounded-lg p-3 backdrop-blur-sm border border-white/20">
             <p className="text-blue-50 text-xs mb-1">Preparing to download:</p>
