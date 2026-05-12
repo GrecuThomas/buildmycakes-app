@@ -13,8 +13,8 @@ interface SubscriptionCache {
 const CACHE_KEY = 'bmc-subscription-cache'
 
 // Keep these in sync with Stripe price IDs used in Pricing_Standalone.tsx
-const SPRINT_PRICE_ID = 'price_1TEQpIF6w6kZyHeYzgaYvyTi'
-const PRO_PRICE_ID = 'price_1TDLuXF6w6kZyHeYz3sm9um5'
+const SPRINT_PRICE_ID = import.meta.env.VITE_STRIPE_SPRINT_PRICE_ID as string
+const PRO_PRICE_ID = import.meta.env.VITE_STRIPE_PRO_PRICE_ID as string
 
 export function getTierFromPriceId(priceId: string | null): SubscriptionTier {
   if (!priceId) return 'free'

@@ -115,7 +115,7 @@ async function handleChargeSucceeded(charge: Stripe.Charge) {
       .from('subscriptions')
       .select('id')
       .eq('customer_id', customer.id)
-      .eq('stripe_price_id', 'price_1TEQpIF6w6kZyHeYzgaYvyTi') // Only check for one-time price
+      .eq('stripe_price_id', process.env.VITE_STRIPE_SPRINT_PRICE_ID || '') // Only check for one-time price
       .gte('created_at', new Date(Date.now() - 5000).toISOString()); // Created in last 5 seconds
 
     // If we found a subscription created very recently, don't create another one
@@ -136,7 +136,7 @@ async function handleChargeSucceeded(charge: Stripe.Charge) {
         .insert({
           customer_id: customer.id,
           stripe_subscription_id: `onetime_${charge.id}`, // Use charge ID as unique identifier
-          stripe_price_id: 'price_1TEQpIF6w6kZyHeYzgaYvyTi', // The 24-hour pass price
+          stripe_price_id: process.env.VITE_STRIPE_SPRINT_PRICE_ID || '', // The 24-hour pass price
           status: 'active',
           current_period_start: now.toISOString(),
           current_period_end: expiresAt.toISOString(),

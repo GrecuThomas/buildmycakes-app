@@ -97,7 +97,7 @@ export const createCheckoutSession = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     try {
       // Use 'payment' mode for one-time purchases, 'subscription' for recurring
-      const ONETIME_PRICE_ID = 'price_1TEQpIF6w6kZyHeYzgaYvyTi'; // 24-hour pass
+      const ONETIME_PRICE_ID = process.env.VITE_STRIPE_SPRINT_PRICE_ID || ''; // 24-hour pass
       const checkoutMode = data.priceId === ONETIME_PRICE_ID ? 'payment' : 'subscription';
 
       // Create checkout session

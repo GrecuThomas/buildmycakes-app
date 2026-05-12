@@ -27,7 +27,7 @@ function PricingCheckoutPage() {
           
           if (response.subscription) {
             const priceId = response.subscription.stripe_price_id;
-            const proSubscriptionPriceId = 'price_1TDLuXF6w6kZyHeYz3sm9um5';
+            const proSubscriptionPriceId = import.meta.env.VITE_STRIPE_PRO_PRICE_ID as string;
             
             console.log('Price ID:', priceId, 'Expected:', proSubscriptionPriceId);
             

@@ -8,7 +8,7 @@ import { getSubscriptionDetails } from '../server/stripe.functions'
 
 import '../styles.css'
 
-const GOOGLE_CLIENT_ID = '403400741162-roc9hheq3aineldf1fe2d4oaqnjvf88q.apps.googleusercontent.com'
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''
 
 export const Route = createRootRoute({
   head: () => ({
@@ -116,7 +116,7 @@ function AppInitializer() {
       if (!subscription?.current_period_end) return
 
       // Only needed for sprint (the 24-hour one-time pass)
-      const SPRINT_PRICE_ID = 'price_1TEQpIF6w6kZyHeYzgaYvyTi'
+      const SPRINT_PRICE_ID = import.meta.env.VITE_STRIPE_SPRINT_PRICE_ID as string
       if (subscription.stripe_price_id !== SPRINT_PRICE_ID) return
 
       const expiresAt = new Date(subscription.current_period_end).getTime()

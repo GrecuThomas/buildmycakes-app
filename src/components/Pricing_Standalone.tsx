@@ -43,7 +43,7 @@ const PRICING_TIERS: PricingTier[] = [
     id: 'standard',
     name: 'The 24-Hour Sprint',
     price: 2.00,
-    priceId: 'price_1TEQpIF6w6kZyHeYzgaYvyTi', // Get from Stripe Dashboard
+    priceId: import.meta.env.VITE_STRIPE_SPRINT_PRICE_ID as string,
     description: 'Ideal for the baker with a big client meeting tomorrow. Get everything you need for the price of a cupcake.',
     popular: true,
     features: [
@@ -58,7 +58,7 @@ const PRICING_TIERS: PricingTier[] = [
     id: 'pro',
     name: 'The Master Baker',
     price: 5.00,
-    priceId: 'price_1TDLuXF6w6kZyHeYz3sm9um5', // Get from Stripe Dashboard
+    priceId: import.meta.env.VITE_STRIPE_PRO_PRICE_ID as string,
     description: 'For the busy pro who designs cakes every week. The ultimate value for your business. Get everything you need for the price of a cupcake.',
     features: [
       '**Unlimited Pro Design**: Everything in the 24h Pass, but permanent.',

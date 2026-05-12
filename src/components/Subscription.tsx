@@ -140,11 +140,11 @@ const Subscription = () => {
   const getSubscriptionPlanName = () => {
     const priceId = subscriptionData?.subscription?.stripe_price_id;
     // One-time
-    if (priceId === 'price_1TEQpIF6w6kZyHeYzgaYvyTi') {
+    if (priceId === import.meta.env.VITE_STRIPE_SPRINT_PRICE_ID) {
       return 'The 24-Hour Sprint ($2.00)';
     }
     // Recurring monthly
-    if (priceId === 'price_1TDLuXF6w6kZyHeYz3sm9um5') {
+    if (priceId === import.meta.env.VITE_STRIPE_PRO_PRICE_ID) {
       return 'The Master Baker ($5.00/mo)';
     }
     return 'Active';
