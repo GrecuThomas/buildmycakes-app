@@ -1,60 +1,37 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useLayoutEffect } from "react";
 import { Home, Tag, Hammer, LogIn, Menu, X, User, LogOut, CreditCard } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
+import { useStore } from "@tanstack/react-store";
+import { authStore } from "../lib/authStore";
 import { clearSessionData } from "../lib/useSessionStorage";
 
 type IProps = {
   tab: string;
 };
 
-// Cache the current user globally to prevent flash on remounts
-let cachedUser: any = null;
-
 const Navigation = (props: IProps) => {
   const router = useRouter();
+  const storeUser = useStore(authStore, s => s.user);
+
+  // Server renders with showUserUI=false (no avatar, no Log In button — neutral state).
+  // useLayoutEffect fires before the browser's first paint and sets the real value,
+  // so the user never sees the "Log In" button if they are already signed in.
+  const [showUserUI, setShowUserUI] = useState<'pending' | 'logged-in' | 'logged-out'>('pending');
+  useLayoutEffect(() => {
+    setShowUserUI(storeUser ? 'logged-in' : 'logged-out');
+  }, [storeUser]);
+
+  // Keep a stable user ref for display — only update when we have a real user
+  const [user, setUser] = useState<any>(null);
+  useLayoutEffect(() => {
+    if (storeUser) setUser(storeUser);
+    else setUser(null);
+  }, [storeUser]);
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(props.tab);
-  const [user, setUser] = useState<any>(cachedUser);
   const [isLoading, setIsLoading] = useState(false);
-  const initializeRef = useRef(false);
-
-  useEffect(() => {
-    // Only initialize once per component instance to prevent re-checking on every mount
-    if (initializeRef.current) return;
-    initializeRef.current = true;
-
-    let unsubscribe: (() => void) | undefined;
-
-    const initializeAuth = async () => {
-      try {
-        const { supabase } = await import("../lib/supabase");
-        
-        // Set up auth state listener - this updates user state automatically
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (_event, session) => {
-            cachedUser = session?.user || null;
-            setUser(cachedUser);
-          }
-        );
-        
-        // Check current session (initial load)
-        const { data: { session } } = await supabase.auth.getSession();
-        cachedUser = session?.user || null;
-        setUser(cachedUser);
-        
-        unsubscribe = () => subscription?.unsubscribe();
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-      }
-    };
-
-    initializeAuth();
-
-    return () => {
-      unsubscribe?.();
-    };
-  }, []);
 
   const navItems = [
     { name: "Home", icon: <Home size={18} />, href: "/" },
@@ -67,28 +44,19 @@ const Navigation = (props: IProps) => {
       setIsLoading(true);
       setIsDropdownOpen(false);
 
-      // Remove scoped builder draft for this account before ending the session.
       if (user?.id) {
         clearSessionData(user.id);
       }
 
-      // Import Supabase dynamically on the client side
       const { supabase } = await import("../lib/supabase");
-
-      // Call Supabase signOut directly
       const { error } = await supabase.auth.signOut();
 
       if (error) {
         throw new Error(error.message);
       }
 
-      console.log('Logged out successfully');
-
-      // Reset user state and loading state
-      setUser(null);
+      // authStore is updated by the onAuthStateChange listener in __root.tsx
       setIsLoading(false);
-
-      // Redirect to home
       await router.navigate({ to: '/' });
     } catch (error) {
       console.error('Logout error:', error);
@@ -156,7 +124,7 @@ const Navigation = (props: IProps) => {
             ))}
 
             {/* Avatar or Log In Button */}
-            {user ? (
+            {showUserUI === 'logged-in' ? (
                 // Avatar Dropdown
                 <div className="relative ml-4">
                   <button
@@ -209,7 +177,7 @@ const Navigation = (props: IProps) => {
                     </div>
                   )}
                 </div>
-              ) : (
+              ) : showUserUI === 'logged-out' ? (
                 // Log In Button
                 <a
                   href="/log-in"
@@ -218,12 +186,15 @@ const Navigation = (props: IProps) => {
                   <LogIn size={18} />
                   Log In
                 </a>
+              ) : (
+                // pending — reserve space so the nav doesn't shift
+                <div className="w-10 h-10 ml-4" />
               )}
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-4">
-            {user && (
+            {showUserUI === 'logged-in' && (
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm"

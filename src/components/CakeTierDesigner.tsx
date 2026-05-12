@@ -1,21 +1,26 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef, FC, ReactNode, MouseEvent } from "react";
+import { useEffect, useLayoutEffect, useState, useMemo, useRef, FC, ReactNode, MouseEvent } from "react";
 import { Circle, Square, Hexagon, Plus, Trash2, ArrowUp, ArrowDown, Move, Download, ArrowLeft, Save, FolderOpen, RotateCcw, LogIn, UserPlus } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
+import { useStore } from "@tanstack/react-store";
 import { SaveProjectModal } from "./SaveProjectModal";
 import { ProjectsModal } from "./ProjectsModal";
 import { AdWall } from "./AdWall";
 import { saveProject, getProject } from "../server/projects.functions";
-import { getSubscriptionDetails } from "../server/stripe.functions";
+import { authStore } from "../lib/authStore";
 import { useSessionAutoSave, getSessionData, clearSessionData } from "../lib/useSessionStorage";
 
 // --- TYPE DEFINITIONS ---
+type CakeType = "sponge" | "chocolate" | "pound" | "cheesecake" | "styrofoam";
+
 interface Tier {
   id: string;
   shape: "circle" | "circle_platform" | "square" | "square_platform" | "hexagon";
   width: number;
   height: number;
+  cakeType: CakeType;
+  hasFillingLayer: boolean;
 }
 
 interface Decoration {
@@ -66,6 +71,8 @@ interface ModalState {
   shape: string;
   width: number | "";
   height: number | "";
+  cakeType: CakeType;
+  hasFillingLayer: boolean;
 }
 
 interface DecorInteractState {
@@ -88,6 +95,52 @@ const parseDimensionInput = (value: string): number | "" => {
   if (value === "") return "";
   return Number(value);
 };
+
+// --- WEIGHT CALCULATION ---
+
+/** Density in g/cm³ for baked cake batter per type */
+const CAKE_DENSITY: Record<CakeType, number> = {
+  sponge:     0.18,
+  chocolate:  0.22,
+  pound:      0.28,
+  cheesecake: 0.50,
+  styrofoam:  0.02, // expanded polystyrene dummy tier
+};
+
+/** Filling (buttercream/ganache) density g/cm³ and thickness in cm (~¼ inch) */
+const FILLING_DENSITY_G_CM3 = 0.90;
+const FILLING_THICKNESS_CM  = 0.635; // ¼ inch
+
+/** Cross-sectional area in cm² given the tier shape and width */
+function getTierArea(shape: Tier["shape"], widthCm: number): number {
+  const r = widthCm / 2;
+  if (shape === "circle" || shape === "circle_platform") return Math.PI * r * r;
+  if (shape === "square" || shape === "square_platform") return widthCm * widthCm;
+  if (shape === "hexagon") return (3 * Math.sqrt(3) / 2) * r * r; // regular hexagon, width = circumscribed diameter
+  return 0;
+}
+
+/**
+ * Returns estimated weight in grams for a single tier.
+ * Platforms return 0 — they are structural boards, not cake.
+ */
+function calcTierWeightG(tier: Tier): number {
+  if (tier.shape.includes("platform")) return 0;
+
+  const area = getTierArea(tier.shape, tier.width);
+  const density = CAKE_DENSITY[tier.cakeType];
+
+  // Styrofoam is solid — no filling, no layers
+  if (tier.cakeType === "styrofoam") return area * tier.height * density;
+
+  if (tier.hasFillingLayer) {
+    const fillingH  = Math.min(FILLING_THICKNESS_CM, tier.height * 0.25); // cap at 25 % of tier height
+    const cakeH     = tier.height - fillingH;
+    return area * cakeH * density + area * fillingH * FILLING_DENSITY_G_CM3;
+  }
+
+  return area * tier.height * density;
+}
 
 const sortDecorationsByNumericName = (a: DecorationListItem, b: DecorationListItem): number => {
   const aNum = Number(a.name.match(/\d+/)?.[0] ?? 0);
@@ -499,6 +552,23 @@ interface CakeTierDesignerProps {
 
 export default function Page({ initialProjectId }: CakeTierDesignerProps): ReactNode {
   const router = useRouter();
+  const subscriptionTier = useStore(authStore, s => s.tier);
+  const isInitialized = useStore(authStore, s => s.isInitialized);
+  const authUser = useStore(authStore, s => s.user);
+
+  // Default true so the server HTML (which has no auth context) never includes the
+  // watermark. useLayoutEffect runs synchronously before the browser's first paint
+  // and sets the real value — free users get the watermark added before they see
+  // anything, paid users never see it at all.
+  const [hasSubscription, setHasSubscription] = useState(true);
+  useLayoutEffect(() => {
+    if (!authUser) {
+      setHasSubscription(false);
+    } else if (isInitialized) {
+      setHasSubscription(subscriptionTier !== 'free');
+    }
+    // authUser exists but not yet initialized → keep true (optimistic)
+  }, [authUser, subscriptionTier, isInitialized]);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [hoveredTier, setHoveredTier] = useState<string | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
@@ -512,7 +582,6 @@ export default function Page({ initialProjectId }: CakeTierDesignerProps): React
   const [exportType, setExportType] = useState<"png" | "pdf" | null>(null);
   const [showDimensions, setShowDimensions] = useState<boolean>(true);
   const [showDecorations, setShowDecorations] = useState<boolean>(true);
-  const [hasSubscription, setHasSubscription] = useState<boolean>(false);
   const panStartRef = useRef<SVGPoint>({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -535,6 +604,8 @@ export default function Page({ initialProjectId }: CakeTierDesignerProps): React
     shape: "circle",
     width: 30,
     height: 10,
+    cakeType: "sponge",
+    hasFillingLayer: true,
   });
 
   // Save/Projects Modals State
@@ -610,16 +681,12 @@ export default function Page({ initialProjectId }: CakeTierDesignerProps): React
         }
 
         if (!session?.access_token) {
-          setHasSubscription(false);
           setShowGuestPrompt(true);
         } else {
           setShowGuestPrompt(false);
-          const response = await getSubscriptionDetails({ data: { authToken: session.access_token } });
-          setHasSubscription(response.hasPayment);
         }
       } catch (error) {
-        console.error("Error checking subscription:", error);
-        setHasSubscription(false);
+        console.error("Error loading builder state:", error);
         if (initialProjectId) {
           alert(`Error loading project: ${(error as Error).message}`);
         }
@@ -672,6 +739,13 @@ export default function Page({ initialProjectId }: CakeTierDesignerProps): React
       tiersWithY: mapped,
       actualTiersCount: tCount,
     };
+  }, [tiers]);
+
+  /** Per-tier weight in grams and totals — recomputed whenever tiers change */
+  const weightSummary = useMemo(() => {
+    const perTier = tiers.map((t) => ({ id: t.id, weightG: calcTierWeightG(t) }));
+    const totalG  = perTier.reduce((sum, t) => sum + t.weightG, 0);
+    return { perTier, totalG, totalKg: totalG / 1000, totalLbs: totalG / 453.592 };
   }, [tiers]);
 
   // --- Handlers ---
@@ -990,6 +1064,8 @@ export default function Page({ initialProjectId }: CakeTierDesignerProps): React
       shape: "circle",
       width: 30,
       height: 10,
+      cakeType: "sponge",
+      hasFillingLayer: true,
     });
     setShowSaveModal(false);
     setShowProjectsModal(false);
@@ -1142,7 +1218,7 @@ export default function Page({ initialProjectId }: CakeTierDesignerProps): React
         defW = shapeType.includes("platform") ? topTier.width + 5 : Math.max(10, topTier.width - 10);
         defH = getAutoTierHeight(shapeType, defW);
       }
-      setModal({ isOpen: true, mode: "add", tierId: null, shape: shapeType, width: defW, height: defH });
+      setModal({ isOpen: true, mode: "add", tierId: null, shape: shapeType, width: defW, height: defH, cakeType: "sponge", hasFillingLayer: true });
     } else if (mode === "edit" && existingTier) {
       setModal({
         isOpen: true,
@@ -1151,6 +1227,8 @@ export default function Page({ initialProjectId }: CakeTierDesignerProps): React
         shape: existingTier.shape,
         width: existingTier.width,
         height: existingTier.height,
+        cakeType: existingTier.cakeType,
+        hasFillingLayer: existingTier.hasFillingLayer,
       });
     }
   };
@@ -1165,9 +1243,9 @@ export default function Page({ initialProjectId }: CakeTierDesignerProps): React
     }
 
     if (modal.mode === "add") {
-      setTiers([...tiers, { id: generateId(), shape: modal.shape as Tier["shape"], width, height }]);
+      setTiers([...tiers, { id: generateId(), shape: modal.shape as Tier["shape"], width, height, cakeType: modal.cakeType, hasFillingLayer: modal.hasFillingLayer }]);
     } else {
-      setTiers(tiers.map((t) => (t.id === modal.tierId ? { ...t, width, height } : t)));
+      setTiers(tiers.map((t) => (t.id === modal.tierId ? { ...t, width, height, cakeType: modal.cakeType, hasFillingLayer: modal.hasFillingLayer } : t)));
     }
     setModal({ ...modal, isOpen: false });
   };
@@ -1598,6 +1676,16 @@ export default function Page({ initialProjectId }: CakeTierDesignerProps): React
                           <div className="text-xs text-slate-500 font-mono">
                             {tier.width}cm W × {tier.height}cm H
                           </div>
+                          {!tier.shape.includes("platform") && (
+                            <div className="flex items-center gap-1 mt-1 flex-wrap">
+                              <span className={`inline-block px-1.5 py-0.5 text-[10px] font-medium rounded capitalize ${tier.cakeType === "styrofoam" ? "bg-slate-200 text-slate-600" : "bg-amber-100 text-amber-700"}`}>
+                                {tier.cakeType === "sponge" ? "Sponge" : tier.cakeType === "chocolate" ? "Chocolate" : tier.cakeType === "pound" ? "Pound" : tier.cakeType === "cheesecake" ? "Cheesecake" : "Styrofoam"}
+                              </span>
+                              {tier.hasFillingLayer && (
+                                <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium rounded bg-pink-100 text-pink-700">Filling</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-col gap-1">
@@ -1627,6 +1715,32 @@ export default function Page({ initialProjectId }: CakeTierDesignerProps): React
               </div>
             )}
           </div>
+
+          {/* Weight Summary — pinned footer, only shown when there are cake tiers */}
+          {weightSummary.totalG > 0 && (
+            <div className="shrink-0 border-t border-slate-100 px-6 py-4 bg-slate-50">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Estimated Weight</h2>
+              <div className="flex items-baseline justify-between mb-3">
+                <span className="text-2xl font-bold text-slate-800">{weightSummary.totalKg.toFixed(2)} kg</span>
+                <span className="text-sm text-slate-500">{weightSummary.totalLbs.toFixed(2)} lbs</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                {[...weightSummary.perTier].reverse().map((tw) => {
+                  const tier = tiers.find((t) => t.id === tw.id);
+                  if (!tier || tier.shape.includes("platform")) return null;
+                  const tierObj = tiersWithY.find((t) => t.id === tw.id) as any;
+                  const label = tierObj?.tierNumber ? `Tier ${tierObj.tierNumber}` : tier.shape;
+                  return (
+                    <div key={tw.id} className="flex items-center justify-between text-xs text-slate-600">
+                      <span className="capitalize">{label} ({tier.shape.replace("_", " ")})</span>
+                      <span className="font-mono text-slate-500">{(tw.weightG / 1000).toFixed(2)} kg</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-slate-400 mt-3">Estimates only — actual weight varies by recipe.</p>
+            </div>
+          )}
         </aside>
       </main>
 
@@ -1688,6 +1802,47 @@ export default function Page({ initialProjectId }: CakeTierDesignerProps): React
                   />
                   <p className="text-[10px] text-slate-400 mt-2">Defines the vertical thickness.</p>
                 </div>
+
+                {/* Only show cake-specific fields for actual cake tiers, not platforms */}
+                {!modal.shape.includes("platform") && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Cake Type</label>
+                      <select
+                        value={modal.cakeType}
+                        onChange={(e) => setModal({ ...modal, cakeType: e.target.value as CakeType })}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+                      >
+                        <option value="sponge">Sponge / Vanilla</option>
+                        <option value="chocolate">Chocolate / Carrot</option>
+                        <option value="pound">Pound Cake</option>
+                        <option value="cheesecake">Cheesecake</option>
+                        <option value="styrofoam">Styrofoam (Dummy Tier)</option>
+                      </select>
+                      <p className="text-[10px] text-slate-400 mt-1">Used for weight estimation.</p>
+                    </div>
+
+                    {modal.cakeType !== "styrofoam" && (
+                      <div className="flex items-center justify-between py-3 px-4 rounded-lg border border-slate-200 bg-slate-50">
+                        <div>
+                          <p className="text-sm font-medium text-slate-700">Filling layer</p>
+                          <p className="text-[10px] text-slate-400">Adds a ¼″ buttercream or ganache layer between cake layers.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setModal({ ...modal, hasFillingLayer: !modal.hasFillingLayer })}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${modal.hasFillingLayer ? "bg-blue-600" : "bg-slate-300"}`}
+                          role="switch"
+                          aria-checked={modal.hasFillingLayer}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${modal.hasFillingLayer ? "translate-x-5" : "translate-x-0"}`}
+                          />
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               <div className="mt-8 flex gap-3">

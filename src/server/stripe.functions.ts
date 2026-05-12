@@ -274,9 +274,15 @@ export const getSubscriptionDetails = createServerFn({ method: 'GET' })
       // Filter out expired subscriptions and get the active one
       const now = new Date();
       const validSubscriptions = subscriptions.filter((s: any) => {
-        // Skip canceled subscriptions
-        if (s.status === 'canceled') return false;
-        
+        // A subscription marked canceled but with cancel_at_period_end means the user
+        // canceled but retains access until current_period_end. Keep it until then.
+        if (s.status === 'canceled') {
+          if (s.cancel_at_period_end && s.current_period_end && new Date(s.current_period_end) > now) {
+            return true;
+          }
+          return false;
+        }
+
         // Skip subscriptions where current_period_end has passed
         if (s.current_period_end && new Date(s.current_period_end) < now) {
           console.log('[getSubscriptionDetails] Subscription expired:', s.id, 'ended at:', s.current_period_end);
