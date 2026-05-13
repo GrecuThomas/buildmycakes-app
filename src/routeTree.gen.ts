@@ -23,7 +23,6 @@ import { Route as GettingStartedRouteImport } from './routes/getting-started'
 import { Route as ContactUsRouteImport } from './routes/contact-us'
 import { Route as CheckEmailRouteImport } from './routes/check-email'
 import { Route as BuilderRouteImport } from './routes/builder'
-import { Route as BlogRouteImport } from './routes/blog'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutUsRouteImport } from './routes/about-us'
 import { Route as IndexRouteImport } from './routes/index'
@@ -105,11 +104,6 @@ const BuilderRoute = BuilderRouteImport.update({
   path: '/builder',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BlogRoute = BlogRouteImport.update({
-  id: '/blog',
-  path: '/blog',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -165,7 +159,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about-us': typeof AboutUsRoute
   '/account': typeof AccountRouteWithChildren
-  '/blog': typeof BlogRoute
   '/builder': typeof BuilderRoute
   '/check-email': typeof CheckEmailRoute
   '/contact-us': typeof ContactUsRoute
@@ -192,7 +185,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about-us': typeof AboutUsRoute
   '/account': typeof AccountRouteWithChildren
-  '/blog': typeof BlogRoute
   '/builder': typeof BuilderRoute
   '/check-email': typeof CheckEmailRoute
   '/contact-us': typeof ContactUsRoute
@@ -220,7 +212,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about-us': typeof AboutUsRoute
   '/account': typeof AccountRouteWithChildren
-  '/blog': typeof BlogRoute
   '/builder': typeof BuilderRoute
   '/check-email': typeof CheckEmailRoute
   '/contact-us': typeof ContactUsRoute
@@ -249,7 +240,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about-us'
     | '/account'
-    | '/blog'
     | '/builder'
     | '/check-email'
     | '/contact-us'
@@ -276,7 +266,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about-us'
     | '/account'
-    | '/blog'
     | '/builder'
     | '/check-email'
     | '/contact-us'
@@ -303,7 +292,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about-us'
     | '/account'
-    | '/blog'
     | '/builder'
     | '/check-email'
     | '/contact-us'
@@ -331,7 +319,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutUsRoute: typeof AboutUsRoute
   AccountRoute: typeof AccountRouteWithChildren
-  BlogRoute: typeof BlogRoute
   BuilderRoute: typeof BuilderRoute
   CheckEmailRoute: typeof CheckEmailRoute
   ContactUsRoute: typeof ContactUsRoute
@@ -454,13 +441,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BuilderRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog': {
-      id: '/blog'
-      path: '/blog'
-      fullPath: '/blog'
-      preLoaderRoute: typeof BlogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/account': {
       id: '/account'
       path: '/account'
@@ -549,7 +529,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutUsRoute: AboutUsRoute,
   AccountRoute: AccountRouteWithChildren,
-  BlogRoute: BlogRoute,
   BuilderRoute: BuilderRoute,
   CheckEmailRoute: CheckEmailRoute,
   ContactUsRoute: ContactUsRoute,

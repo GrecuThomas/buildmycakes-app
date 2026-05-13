@@ -1,6 +1,7 @@
 import { ArrowRight, CheckCircle2, Clock3, Layers3, Rocket, Sparkles, Wand2 } from "lucide-react";
 import Navigation from "./Navigation";
 import Footer from "./Footer";
+import { GoogleAdBanner } from "./GoogleAdBanner";
 
 const roadmapSections = [
   {
@@ -104,6 +105,10 @@ const Roadmap = () => {
             })}
           </div>
         </section>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <GoogleAdBanner adSlot="4633851948" adFormat="rectangle" />
+        </div>
 
         <section className="max-w-7xl mx-auto px-4 pb-20 sm:px-6 lg:px-8">
           <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">

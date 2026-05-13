@@ -1,11 +1,14 @@
 import Navigation from "./Navigation";
 import Footer from "./Footer";
 import { ArrowRight, CreditCard, PlayCircle, Sparkles, UserPlus } from "lucide-react";
+import { StickyRailAds } from "./StickyRailAds";
+import { GoogleAdBanner } from "./GoogleAdBanner";
 
 
 const GettingStarted = () => {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+      <StickyRailAds />
       <Navigation tab="Getting Started" />
       
       <main>
@@ -68,6 +71,10 @@ const GettingStarted = () => {
             </div>
           </div>
         </section>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+          <GoogleAdBanner adSlot="4633851948" adFormat="horizontal" className="mb-4" />
+        </div>
 
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
           <div className="grid gap-6 lg:grid-cols-3">

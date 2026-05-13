@@ -4,6 +4,7 @@ import { useRouter } from "@tanstack/react-router";
 import Navigation from "./Navigation";
 import Footer from "./Footer";
 import { GoogleAdBanner } from "./GoogleAdBanner";
+import { StickyRailAds } from "./StickyRailAds";
 import { copyTemplateSketch } from "../server/projects.functions";
 
 const communityDesigns = [
@@ -59,6 +60,7 @@ const App = () => {
   const [isLoading, setIsLoading] = React.useState(false);
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+      <StickyRailAds />
       {/* Navigation */}
       <Navigation tab="Home" />
       {/* Hero Content */}
@@ -482,9 +484,8 @@ const App = () => {
       <section className="bg-slate-100 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <GoogleAdBanner
-            adSlot="YOUR_AD_SLOT_ID"
-            adClient="ca-pub-xxxxxxxxxxxxxxxx"
-            adFormat="auto"
+            adSlot="4633851948"
+            adFormat="horizontal"
           />
         </div>
       </section>

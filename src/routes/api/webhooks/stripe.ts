@@ -181,23 +181,27 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
     console.log(`[Webhook] Using customer with ID: ${customer.id} for user: ${customer.user_id}`);
 
     // Insert subscription with full details from Stripe
-    let startTime = fullSubscription.current_period_start;
-    let endTime = fullSubscription.current_period_end;
+    // current_period_start/end moved in newer Stripe SDK — check both locations
+    let startTime: number | undefined =
+      (fullSubscription as any).current_period_start ??
+      fullSubscription.items.data[0]?.current_period_start;
+    let endTime: number | undefined =
+      (fullSubscription as any).current_period_end ??
+      fullSubscription.items.data[0]?.current_period_end;
 
     console.log(`[Webhook] Full subscription object:`, {
       id: fullSubscription.id,
       status: fullSubscription.status,
-      current_period_start: fullSubscription.current_period_start,
-      current_period_end: fullSubscription.current_period_end,
+      current_period_start: startTime,
+      current_period_end: endTime,
       created: fullSubscription.created,
-      billing_cycle_anchor: (fullSubscription as any).billing_cycle_anchor,
     });
 
     // If period dates are missing, compute them from created time and billing interval
     if (!startTime || !endTime) {
       console.log(`[Webhook] Period dates missing, computing from billing details`);
-      const billingInterval = fullSubscription.items.data[0]?.billing_period?.interval || 'month';
-      const billingIntervalCount = fullSubscription.items.data[0]?.billing_period?.interval_count || 1;
+      const billingInterval = fullSubscription.items.data[0]?.price.recurring?.interval || 'month';
+      const billingIntervalCount = fullSubscription.items.data[0]?.price.recurring?.interval_count || 1;
       
       startTime = fullSubscription.created;
       
@@ -304,17 +308,25 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     }
 
     // Update subscription with full details from Stripe
-    const startTime = (fullSubscription as any).current_period_start;
-    const endTime = (fullSubscription as any).current_period_end;
+    // current_period_start/end moved in newer Stripe SDK — check both locations
+    const startTime: number | undefined =
+      (fullSubscription as any).current_period_start ??
+      fullSubscription.items.data[0]?.current_period_start;
+    const endTime: number | undefined =
+      (fullSubscription as any).current_period_end ??
+      fullSubscription.items.data[0]?.current_period_end;
+
+    const updatePayload: Record<string, any> = {
+      status: fullSubscription.status,
+      cancel_at_period_end: fullSubscription.cancel_at_period_end,
+    };
+    // Only overwrite period dates when Stripe provides them — never blank them out
+    if (startTime) updatePayload.current_period_start = new Date(startTime * 1000).toISOString();
+    if (endTime)   updatePayload.current_period_end   = new Date(endTime   * 1000).toISOString();
 
     const { error: updateError } = await (supabaseClient as any)
       .from('subscriptions')
-      .update({
-        status: fullSubscription.status,
-        current_period_start: startTime ? new Date(startTime * 1000).toISOString() : null,
-        current_period_end: endTime ? new Date(endTime * 1000).toISOString() : null,
-        cancel_at_period_end: fullSubscription.cancel_at_period_end,
-      })
+      .update(updatePayload)
       .eq('stripe_subscription_id', fullSubscription.id);
 
     if (updateError) {

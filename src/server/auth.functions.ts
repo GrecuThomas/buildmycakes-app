@@ -47,21 +47,6 @@ export const registerUser = createServerFn({ method: 'POST' })
     }
   });
 
-// Decode JWT token (base64 payload without verification)
-const decodeJWT = (token: string) => {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      throw new Error('Invalid token format');
-    }
-    const payload = parts[1];
-    const decoded = JSON.parse(Buffer.from(payload, 'base64').toString());
-    return decoded;
-  } catch (error) {
-    throw new Error('Failed to decode token');
-  }
-};
-
 const GoogleSignUpSchema = z.object({
   googleToken: z.string().min(1, 'Google token is required'),
 });
@@ -70,11 +55,21 @@ export const registerGoogleUser = createServerFn({ method: 'POST' })
   .inputValidator(GoogleSignUpSchema)
   .handler(async ({ data }) => {
     try {
-      // Decode the Google JWT token to get user info
-      const decodedToken = decodeJWT(data.googleToken);
+      // Verify the Google ID token using Google's public keys
+      const { OAuth2Client } = await import('google-auth-library');
+      const googleClientId = process.env.VITE_GOOGLE_CLIENT_ID;
+      if (!googleClientId) throw new Error('Google client ID not configured');
 
-      const email = decodedToken.email;
-      const name = decodedToken.name || '';
+      const client = new OAuth2Client(googleClientId);
+      const ticket = await client.verifyIdToken({
+        idToken: data.googleToken,
+        audience: googleClientId,
+      });
+      const payload = ticket.getPayload();
+      if (!payload) throw new Error('Invalid Google token');
+
+      const email = payload.email;
+      const name = payload.name || '';
       const [firstName = '', lastName = ''] = name.split(' ');
 
       if (!email) {
@@ -101,7 +96,7 @@ export const registerGoogleUser = createServerFn({ method: 'POST' })
             firstName,
             lastName,
             location: '',
-            googleId: decodedToken.sub,
+            googleId: payload.sub,
           },
         },
       });
@@ -183,52 +178,38 @@ export const loginGoogleUser = createServerFn({ method: 'POST' })
   .inputValidator(GoogleSignUpSchema)
   .handler(async ({ data }) => {
     try {
-      // Decode the Google JWT token to get user info
-      const decodedToken = decodeJWT(data.googleToken);
+      // Verify the Google ID token using Google's public keys before trusting it
+      const { OAuth2Client } = await import('google-auth-library');
+      const googleClientId = process.env.VITE_GOOGLE_CLIENT_ID;
+      if (!googleClientId) throw new Error('Google client ID not configured');
 
-      const email = decodedToken.email;
-
-      if (!email) {
-        throw new Error('Could not retrieve email from Google account');
-      }
-
-      // Try to sign in the user
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password: Math.random().toString(36).slice(-12), // This will fail for OAuth users, which is expected
+      const client = new OAuth2Client(googleClientId);
+      const ticket = await client.verifyIdToken({
+        idToken: data.googleToken,
+        audience: googleClientId,
       });
+      const payload = ticket.getPayload();
+      if (!payload) throw new Error('Invalid Google token');
 
-      // If sign in with password fails, it means user might be an OAuth user or doesn't exist yet
-      // For Google OAuth users, we should handle this differently
-      // For now, if the email exists, we'll assume they can sign in with Google
-
-      if (authError && authError.message.includes('Invalid login credentials')) {
-        // Check if user exists - if they do, they might be a Google OAuth user
-        // Try to create a session with the Google token
-        // Since Supabase handles OAuth, we should validate the token instead
-        const { data: { user }, error: getUserError } = await supabase.auth.getUser();
-        
-        if (!getUserError && user) {
-          return {
-            success: true,
-            userId: user.id,
-            email: user.email,
-            message: 'Logged in with Google successfully',
-          };
-        }
-
-        throw new Error('Invalid email or password');
-      }
+      // Use Supabase's built-in Google ID token sign-in (creates session server-side)
+      const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: data.googleToken,
+      });
 
       if (authError) {
         throw new Error(authError.message);
       }
 
+      if (!authData.user) {
+        throw new Error('Google login failed');
+      }
+
       return {
         success: true,
-        userId: authData?.user?.id,
-        email: authData?.user?.email,
-        message: 'Logged in successfully',
+        userId: authData.user.id,
+        email: authData.user.email,
+        message: 'Logged in with Google successfully',
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Google login failed';

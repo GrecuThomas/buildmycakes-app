@@ -52,14 +52,21 @@ function resolveStripeSubscriptionPeriod(subscription: Stripe.Subscription) {
  * Note: Auth should be handled by API routes, not here
  */
 export const getOrCreateStripeCustomer = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ userId: z.string(), email: z.string().email() }))
+  .inputValidator(z.object({ authToken: z.string() }))
   .handler(async ({ data }) => {
     try {
+      // Verify token server-side — never trust client-supplied userId/email
+      const { data: { user }, error: authError } = await supabase.auth.getUser(data.authToken);
+      if (authError || !user) throw new Error('Not authenticated');
+
+      const userId = user.id;
+      const email = user.email!;
+
       // Check if customer already exists in database
       const { data: existingCustomer } = await supabase
         .from('customers')
         .select('stripe_customer_id')
-        .eq('user_id', data.userId)
+        .eq('user_id', userId)
         .single();
 
       if (existingCustomer?.stripe_customer_id) {
@@ -68,17 +75,15 @@ export const getOrCreateStripeCustomer = createServerFn({ method: 'POST' })
 
       // Create new Stripe customer
       const customer = await stripe.customers.create({
-        email: data.email,
-        metadata: {
-          userId: data.userId,
-        },
+        email,
+        metadata: { userId },
       });
 
       // Save to database
       await supabase.from('customers').insert({
-        user_id: data.userId,
+        user_id: userId,
         stripe_customer_id: customer.id,
-        email: data.email,
+        email,
       });
 
       return { customerId: customer.id };

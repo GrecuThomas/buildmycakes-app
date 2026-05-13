@@ -2,6 +2,7 @@ import { Users, Lightbulb, Heart, Rocket } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
 import Navigation from "./Navigation";
 import Footer from "./Footer";
+import { GoogleAdBanner } from "./GoogleAdBanner";
 
 const AboutUs = () => {
   const router = useRouter();
@@ -187,6 +188,9 @@ const AboutUs = () => {
         </section>
       </main>
 
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+        <GoogleAdBanner adSlot="4633851948" adFormat="auto" className="mb-10" />
+      </div>
       <Footer />
     </div>
   );
